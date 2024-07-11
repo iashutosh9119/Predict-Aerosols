@@ -26,7 +26,9 @@
         fetch('/api/get-co-density')
             .then(response => response.json())
             .then(data => {
-                L.geoJSON(data).addTo(map);
+                L.tileLayer(data.tile_url, {
+                    attribution: '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>'
+                }).addTo(map);
             })
             .catch(error => console.error('Error fetching CO density data:', error));
     </script>

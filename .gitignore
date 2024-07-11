@@ -1,5 +1,7 @@
 #user-defined
 config/
+.vscode/
+
 *.zip
 *.tar.gz
 *.tar.xz
