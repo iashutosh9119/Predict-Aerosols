@@ -17,19 +17,31 @@ credentials = service_account.Credentials.from_service_account_file(
 )
 ee.Initialize(credentials)
 
+
+
 @app.route('/api/get-co-density')
 def get_co_density():
     # Define the region of interest (Houston)
-    houston = ee.Geometry.Rectangle([-95.797, 29.523, -95.014, 30.110])
+    # houston = ee.Geometry.Rectangle([-95.797, 29.523, -95.014, 30.110])
 
     # Load the Sentinel-5P CO data
+    city_lat = 29.7601
+    city_lon = -95.3701
+
+
+    # Define a buffer around the point to cover an area around Hyderabad (25 kilometers)
+    buffer_radius = 50000  # 25 kilometers in meters
+    buffered_city_geometry = ee.Geometry.Point(city_lon, city_lat).buffer(buffer_radius)
+
     dataset = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_CO') \
                 .select('CO_column_number_density') \
                 .filterDate('2019-06-01', '2019-06-11') \
-                .filterBounds(houston)
+                .filterBounds(buffered_city_geometry)
 
     # Calculate the mean CO density over the specified time period
-    meanCO = dataset.mean().clip(houston)
+    meanCO = dataset.mean().clip(buffered_city_geometry)
+
+    # print(meanCO)
 
     vis_params = {
         'min': 0,
