@@ -13,3 +13,12 @@ An AI based cloud platform to predict the real time concentration of Aerosols ov
 
 > 	***Mahesh Pathakoti***, Scientist/Engineer-SF, National Remote Sensing Centre, Indian Space Reserach Organisation (ISRO), India 
 ***
+
+## Credits & References
+1. Flask: A lightweight WSGI web application framework, developed by Armin Ronacher and the Pallets Projects community. Available at: https://flask.palletsprojects.com/
+
+2. Tailblocks: Ready-to-use Tailwind CSS blocks, created by Mert Cukuren. Available at: https://mertjf.github.io/tailblocks/
+
+3. Google Earth Engine: A cloud-based platform for planetary-scale environmental data analysis. Available at: https://earthengine.google.com/
+
+4. Updating Soon

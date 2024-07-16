@@ -18,13 +18,24 @@ credentials = service_account.Credentials.from_service_account_file(
 ee.Initialize(credentials)
 
 
+@app.route('/about/')
+def about():
+    return render_template('about_us.html')
+
+@app.route('/contact/')
+def contact():
+    return render_template('contact_us.html')
+
 
 @app.route('/api/get-co-density', methods=['GET'])
 def get_co_density():
 
     city_lat = float(request.args.get('lat'))
     city_lon = float(request.args.get('lon'))
-    buffer = request.args.get('buffer', default=50000, type=int) 
+    buffer = request.args.get('buffer', default=25000, type=int) 
+
+    start_date = request.args.get('start_date', '2024-01-01')
+    end_date = request.args.get('end_date', '2024-05-31')
 
     # print(city_lat, city_lon, type(city_lat), type(city_lon))
     
@@ -37,7 +48,7 @@ def get_co_density():
 
     dataset = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_CO') \
                 .select('CO_column_number_density') \
-                .filterDate('2019-06-01', '2019-06-11') \
+                .filterDate(start_date, end_date) \
                 .filterBounds(buffered_city_geometry)
 
     # Calculate the mean CO density over the specified time period
@@ -46,7 +57,7 @@ def get_co_density():
     vis_params = {
         'min': 0,
         'max': 0.05,
-        'palette': ['black', 'blue', 'purple', 'cyan', 'green', 'yellow', 'red']
+        'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
     }
     map_id = meanCO.getMapId(vis_params)
     tile_url = map_id['tile_fetcher'].url_format
@@ -59,3 +70,4 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
