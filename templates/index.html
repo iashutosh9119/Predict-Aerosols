@@ -29,6 +29,35 @@
                 L.tileLayer(data.tile_url, {
                     attribution: '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>'
                 }).addTo(map);
+
+// Create the legend labels
+var minLabel = ui.Label(visParams.min.toString());
+var maxLabel = ui.Label(visParams.max.toString());
+var gammaLabel = ui.Label('Gamma: ' + visParams.gamma.toString());
+
+// Create the legend color bar
+var colorBar = ui.Thumbnail({
+  image: ee.Image.pixelLonLat().select(0),
+  params: {
+    bbox: [0, 0, 1, 0.1],
+    dimensions: '100x10',
+    format: 'png',
+    min: 0,
+    max: 1,
+    palette: ['0000FF', '00FF00', 'FF0000']
+  },
+  style: {stretch: 'horizontal', margin: '0px 8px', maxHeight: '24px'}
+});
+
+// Create a panel for the legend
+var legendPanel = ui.Panel({
+  widgets: [legendTitle, minLabel, colorBar, maxLabel, gammaLabel],
+  style: {position: 'bottom-left', padding: '8px 15px'}
+});
+
+// Add the legend to the map
+Map.add(legendPanel);
+
             })
             .catch(error => console.error('Error fetching CO density data:', error));
     </script>
