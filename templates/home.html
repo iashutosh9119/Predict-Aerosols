@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CO Density over City</title>
+    <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .map-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 0;
+        }
+        .form-container {
+            position: relative;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="text-gray-600 body-font">
+
+<header class="text-gray-600 body-font">
+  <div class="container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center">
+    <a class="flex title-font font-medium items-center text-gray-900 mb-4 md:mb-0">
+        <img src="/static/LOGO_ISU_Darkblue-1024x572.png" alt="ISU" class="w-auto h-20 p-2">
+        <!-- <img src="/static/nasa-logo.svg" alt="NASA" class="w-20 h-20 p-2"> -->
+        <!-- <img src="/static/Rice_University_Horizontal_Blue.svg" alt="RICEUNI" class="w-auto h-12 p-2"> -->
+    </a>
+    <nav class="md:ml-auto flex flex-wrap items-center text-base justify-center">
+      <a class="mr-5 hover:text-gray-900">Get City Data</a>
+      <a class="mr-5 hover:text-gray-900">Compare Cities</a>
+      <a class="mr-5 hover:text-gray-900">About Us</a>
+      <a class="mr-5 hover:text-gray-900">Contact Us</a>
+    </nav>
+      
+  </div>
+</header>
+
+<section class="text-gray-600 body-font relative">
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+    <div class="container px-5 py-24 mx-auto flex">
+      <div class="lg:w-1/3 md:w-1/2 bg-white rounded-lg p-8 flex flex-col md:ml-auto w-full mt-10 md:mt-0 relative z-10 shadow-md form-container">
+        <h2 class="text-gray-900 text-lg mb-1 font-medium title-font">Select City</h2>
+        <p class="leading-relaxed mb-5 text-gray-600">Select a city or enter the latitude and longitude to view the CO Density (10^18 molecules/cm²) over that area.</p>
+        <div class="relative mb-4">
+          <label for="city" class="leading-7 text-sm text-gray-600">City</label>
+          <select id="city" name="city" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out" onchange="updateLatLon()">
+            <option value="Houston">Houston</option>
+            <option value="Delhi">Delhi</option>
+            <option value="Manual">Manual</option>
+          </select>
+        </div>
+        <div id="manual-inputs" style="display: none;">
+          <div class="relative mb-4">
+            <label for="lat" class="leading-7 text-sm text-gray-600">Latitude</label>
+            <input type="text" id="lat" name="lat" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out">
+          </div>
+          <div class="relative mb-4">
+            <label for="lon" class="leading-7 text-sm text-gray-600">Longitude</label>
+            <input type="text" id="lon" name="lon" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out">
+          </div>
+        </div>
+        <div class="relative mb-4">
+            <label for="buffer" class="leading-7 text-sm text-gray-600">Buffer Radius (meters)</label>
+            <input type="text" id="buffer" name="buffer" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out" value="50000">
+          </div>
+        <button onclick="updateMap()" class="inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg">Show CO Density</button>
+      </div>
+    </div>
+</section>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+      updateLatLon(); // Initialize with the default city
+    });
+  
+    function updateLatLon() {
+      const city = document.getElementById('city').value;
+      const manualInputs = document.getElementById('manual-inputs');
+      let lat, lon;
+  
+      if (city === 'Delhi') {
+        lat = '28.7041';
+        lon = '77.1025';
+        document.getElementById('lat').value = lat;
+        document.getElementById('lon').value = lon;
+        manualInputs.style.display = 'none';
+      } else if (city === 'Houston') {
+        lat = '29.7604';
+        lon = '-95.3698';
+        document.getElementById('lat').value = lat;
+        document.getElementById('lon').value = lon;
+        manualInputs.style.display = 'none';
+      } else if (city === 'Manual') {
+        lat = document.getElementById('lat').value;
+        lon = document.getElementById('lon').value;
+        manualInputs.style.display = 'block';
+      }
+  
+      // Update the map view
+      map.setView([lat, lon], 10);
+      updateMap();
+    }
+  
+    function updateMap() {
+      const lat = document.getElementById('lat').value;
+      const lon = document.getElementById('lon').value;
+      const buffer = document.getElementById('buffer').value;
+  
+      fetch(`/api/get-co-density?lat=${lat}&lon=${lon}&buffer=${buffer}`)
+        .then(response => response.json())
+        .then(data => {
+          const layer = L.tileLayer(data.tile_url, {
+            attribution: '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>'
+          });
+          map.eachLayer((layer) => {
+            if (layer.options && layer.options.attribution) {
+              map.removeLayer(layer);
+            }
+          });
+          layer.addTo(map);
+          map.setView([lat, lon], 10);
+        })
+        .catch(error => console.error('Error fetching CO Density data:', error));
+    }
+  
+    const map = L.map('map').setView([29.7604, -95.3698], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+  </script>
+  
+
+<!-- <script>
+    const map = L.map('map').setView([29.7604, -95.3698], 10);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(map);
+
+    function updateMap() {
+        const lat = document.getElementById('lat').value;
+        const lon = document.getElementById('lon').value;
+
+        fetch(`/api/get-co-Density?lat=${lat}&lon=${lon}`)
+            .then(response => response.json())
+            .then(data => {
+                L.tileLayer(data.tile_url, {
+                    attribution: '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>'
+                }).addTo(map);
+            })
+            .catch(error => console.error('Error fetching COl Density data:', error));
+    }
+
+    // Initial load
+    updateMap();
+</script> -->
+
+</body>
+</html>
