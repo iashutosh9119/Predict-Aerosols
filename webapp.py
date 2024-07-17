@@ -10,6 +10,11 @@ app = Flask(__name__)
 SERVICE_ACCOUNT_FILE = 'config/creds2.json'
 
 
+# Constants
+g = 9.82  # m/s^2
+m_H2O = 0.01801528  # kg/mol
+m_dry_air = 0.0289644  # kg/mol
+
 # Authenticate to GEE using the service account
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -46,23 +51,66 @@ def get_co_density():
     buffer_radius = buffer  # 25 kilometers in meters
     buffered_city_geometry = ee.Geometry.Point(city_lon, city_lat).buffer(buffer_radius)
 
-    dataset = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_CO') \
-                .select('CO_column_number_density') \
-                .filterDate(start_date, end_date) \
-                .filterBounds(buffered_city_geometry)
+        # Filter the collections for the given month
+    filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_CO') \
+        .filterBounds(buffered_city_geometry) \
+        .filterDate(start_date, end_date) \
+        .select(['CO_column_number_density', 'H2O_column_number_density'])
 
-    # Calculate the mean CO density over the specified time period
-    meanCO = dataset.mean().clip(buffered_city_geometry)
+    surface_pressure_collection = ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR") \
+        .filterBounds(buffered_city_geometry) \
+        .filterDate(start_date, end_date) \
+        .select('surface_pressure')
+
+    # Check if the collections are empty
+    if filtered_collection.size().getInfo() == 0 or surface_pressure_collection.size().getInfo() == 0:
+        return None
+
+    # Calculate the mean over the collection for CO, H2O, and surface pressure
+    CO_mean_month = filtered_collection.select('CO_column_number_density').mean().clip(buffered_city_geometry)
+    H2O_mean_month = filtered_collection.select('H2O_column_number_density').mean().clip(buffered_city_geometry)
+    surface_pressure_mean_month = surface_pressure_collection.mean().clip(buffered_city_geometry)
+
+    # Calculate TC_dry_air for the month
+    TC_dry_air_month = surface_pressure_mean_month.divide(g * m_dry_air).subtract(H2O_mean_month.multiply(m_H2O / m_dry_air))
+
+    # Calculate XCO for the month
+    XCO_month = CO_mean_month.divide(TC_dry_air_month).rename('XCO')
+
+    # Convert XCO to ppb
+    XCO_ppb_month = XCO_month.multiply(1e9).rename('XCO_ppb')
+
+    # dataset = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_CO') \
+    #             .select('CO_column_number_density') \
+    #             .filterDate(start_date, end_date) \
+    #             .filterBounds(buffered_city_geometry)
+
+    # # Calculate the mean CO density over the specified time period
+    # meanCO = dataset.mean().clip(buffered_city_geometry)
+
+    meanCO = XCO_ppb_month
+
+    min_max = meanCO.reduceRegion(
+    reducer=ee.Reducer.minMax(),
+    geometry=buffered_city_geometry,
+    scale=1000,
+    bestEffort=True
+    ).getInfo()
+
+
+    min_value = round(min_max.get('XCO_ppb_min', 0), 2)
+    max_value = round(min_max.get('XCO_ppb_max', 0), 2)
+
 
     vis_params = {
-        'min': 0,
-        'max': 0.05,
+        'min': min_value,
+        'max': max_value,
         'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
     }
     map_id = meanCO.getMapId(vis_params)
     tile_url = map_id['tile_fetcher'].url_format
 
-    return jsonify({'tile_url': tile_url})
+    return jsonify({'tile_url': tile_url,'min': min_value,'max': max_value})
 
 @app.route('/')
 def index():

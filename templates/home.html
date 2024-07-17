@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CO Density over City</title>
+    <title>CO concentration over City</title>
     <link
       href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
       rel="stylesheet"
@@ -27,32 +27,31 @@
         z-index: 10;
       }
       .legend {
-  background: white;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-  font-family: Arial, sans-serif;
-  position: absolute;
-  bottom: 30px;
-  left: 10px;
-  z-index: 1000;
-}
-.legend h4 {
-  margin: 0 0 5px;
-  font-size: 16px;
-}
-.legend .gradient {
-  width: 100%;
-  height: 20px;
-  background: linear-gradient(to right, blue, green, yellow, orange, red);
-}
-.legend .labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 5px;
-  font-size: 14px;
-}
-
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        font-family: Arial, sans-serif;
+        position: absolute;
+        bottom: 30px;
+        left: 10px;
+        z-index: 1000;
+      }
+      .legend h4 {
+        margin: 0 0 5px;
+        font-size: 16px;
+      }
+      .legend .gradient {
+        width: 100%;
+        height: 20px;
+        background: linear-gradient(to right, blue, cyan, green, yellow, red);
+      }
+      .legend .labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+        font-size: 14px;
+      }
     </style>
   </head>
   <body class="text-gray-600 body-font">
@@ -68,19 +67,25 @@
             alt="ISU"
             class="w-auto h-20 p-2"
           />
-          <span class="ml-3 text-xl">Dept of Space Application, SSP24 Project</span>
+          <span class="ml-3 text-xl"
+            >Dept of Space Application, SSP24 Project</span
+          >
           <!-- <img src="/static/nasa-logo.svg" alt="NASA" class="w-20 h-20 p-2"> -->
           <!-- <img src="/static/Rice_University_Horizontal_Blue.svg" alt="RICEUNI" class="w-auto h-12 p-2"> -->
         </a>
         <nav
           class="md:ml-auto flex flex-wrap items-center text-base justify-center"
         >
-        <a href="/" class="mr-5 hover:text-gray-900">Home</a>
-        <!-- <a class="mr-5 hover:text-gray-900">Compare Cities</a> -->
-        <a href="/about" class="mr-5 hover:text-gray-900">About Us</a>
-        <a href="/contact" class="mr-5 hover:text-gray-900">Contact Us</a>
-        <a href="https://github.com/iashutosh9119/SSTA-Smart-System-for-Tracking-Airpollution" target="_blank" class="mr-5 hover:text-gray-900">Github</a>
-
+          <a href="/" class="mr-5 hover:text-gray-900">Home</a>
+          <!-- <a class="mr-5 hover:text-gray-900">Compare Cities</a> -->
+          <a href="/about" class="mr-5 hover:text-gray-900">About Us</a>
+          <a href="/contact" class="mr-5 hover:text-gray-900">Contact Us</a>
+          <a
+            href="https://github.com/iashutosh9119/SSTA-Smart-System-for-Tracking-Airpollution"
+            target="_blank"
+            class="mr-5 hover:text-gray-900"
+            >Github</a
+          >
         </nav>
       </div>
     </header>
@@ -100,7 +105,7 @@
           </h2>
           <p class="leading-relaxed mb-5 text-gray-600">
             Select a city or enter the latitude and longitude to view the CO
-            Density (10^18 molecules/cm²) over that area.
+            concentration (ppb) over that area.
           </p>
           <div class="relative mb-4">
             <label for="city" class="leading-7 text-sm text-gray-600"
@@ -183,7 +188,7 @@
             onclick="updateMap()"
             class="inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg"
           >
-            Show CO Density
+            Show CO concentration
           </button>
         </div>
       </div>
@@ -239,6 +244,7 @@
           .then((response) => response.json())
           .then((data) => {
             const layer = L.tileLayer(data.tile_url, {
+              opacity: 0.5,
               attribution:
                 '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
             });
@@ -249,23 +255,24 @@
             });
             layer.addTo(map);
             map.setView([lat, lon], 10);
+            updateLegend(data.min, data.max);
           })
           .catch((error) =>
-            console.error("Error fetching CO Density data:", error)
+            console.error("Error fetching CO concentration data:", error)
           );
       }
 
-      function updateLegend() {
-        const legend = document.getElementById('legend');
-  legend.innerHTML = `
-    <h4>CO Density</h4>
+      function updateLegend(minValue, maxValue) {
+        const legend = document.getElementById("legend");
+        legend.innerHTML = `
+    <h4>CO concentration (ppb)</h4>
     <div class="gradient"></div>
     <div class="labels">
-      <span>0</span>
-      <span>0.05</span>
+      <span>${minValue}</span>
+      <span>${maxValue}</span>
     </div>
   `;
-}
+      }
 
       const map = L.map("map").setView([29.7604, -95.3698], 10);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -274,7 +281,7 @@
 
       document.addEventListener("DOMContentLoaded", function () {
         updateLatLon();
-        updateLegend();
+        updateLegend(0,0.05);
       });
     </script>
 
@@ -289,14 +296,14 @@
         const lat = document.getElementById('lat').value;
         const lon = document.getElementById('lon').value;
 
-        fetch(`/api/get-co-Density?lat=${lat}&lon=${lon}`)
+        fetch(`/api/get-co-concentration?lat=${lat}&lon=${lon}`)
             .then(response => response.json())
             .then(data => {
                 L.tileLayer(data.tile_url, {
                     attribution: '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>'
                 }).addTo(map);
             })
-            .catch(error => console.error('Error fetching COl Density data:', error));
+            .catch(error => console.error('Error fetching COl concentration data:', error));
     }
 
     // Initial load
