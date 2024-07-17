@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CO concentration over City</title>
+    <title>Pollutant Concentration over City</title>
     <link
       href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
       rel="stylesheet"
@@ -184,11 +184,18 @@
             />
           </div>
 
-          <button
+          <div class="relative lg:w-full xl:w-1/2 w-2/4 mt-4">
+            <label for="pollutant" class="leading-7 text-sm text-gray-600">Pollutant</label>
+            <select id="pollutant" name="pollutant" class="w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out">
+                <option value="CO">CO</option>
+                <option value="NO2">NO2</option>
+            </select>
+        </div>
+         <button
             onclick="updateMap()"
             class="inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg"
           >
-            Show CO concentration
+            Show Concentration
           </button>
         </div>
       </div>
@@ -237,9 +244,10 @@
         const buffer = document.getElementById("buffer").value;
         const startDate = document.getElementById("start_date").value;
         const endDate = document.getElementById("end_date").value;
+        const pollutant = document.getElementById('pollutant').value;
 
         fetch(
-          `/api/get-co-density?lat=${lat}&lon=${lon}&buffer=${buffer}&start_date=${startDate}&end_date=${endDate}`
+          `/api/get-co-density?lat=${lat}&lon=${lon}&buffer=${buffer}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}`
         )
           .then((response) => response.json())
           .then((data) => {
@@ -258,14 +266,14 @@
             updateLegend(data.min, data.max);
           })
           .catch((error) =>
-            console.error("Error fetching CO concentration data:", error)
+            console.error("Error fetching Concentration Data:", error)
           );
       }
 
       function updateLegend(minValue, maxValue) {
         const legend = document.getElementById("legend");
         legend.innerHTML = `
-    <h4>CO concentration (ppb)</h4>
+    <h4>Concentration (ppb)</h4>
     <div class="gradient"></div>
     <div class="labels">
       <span>${minValue}</span>
