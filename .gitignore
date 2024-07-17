@@ -1,6 +1,8 @@
 #user-defined
 config/
 .vscode/
+dataset/
+*model/*
 
 *.zip
 *.tar.gz

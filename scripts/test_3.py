@@ -8,7 +8,7 @@ from google.oauth2 import service_account
 # ee.Authenticate()
 
 # # Initialize the Earth Engine API
-# ee.Initialize(project='ee-anisharubeena2024four')
+# ee.Initialize(project='ee-anisharubeena2023four')
 
 
 SERVICE_ACCOUNT_FILE = 'config/creds2.json'
@@ -22,8 +22,8 @@ credentials = service_account.Credentials.from_service_account_file(
 ee.Initialize(credentials)
 
 # Define the coordinates for Bangalore, India
-hyderabad_lat = 12.971599
-hyderabad_lon = 77.594566
+hyderabad_lat = 29.7604 #12.971599
+hyderabad_lon = -95.3698 #77.594566
 
 # Define a buffer around the point to cover an area around Hyderabad (25 kilometers)
 buffer_radius = 50000  # 25 kilometers in meters
@@ -36,8 +36,8 @@ m_dry_air = 0.0289644  # kg/mol
 
 # Function to calculate mean CO concentration for a given month
 def extract_month_data(month):
-    start_date = ee.Date.fromYMD(2024, month, 1)
-    end_date = ee.Date.fromYMD(2024, month, calendar.monthrange(2024, month)[1])
+    start_date = ee.Date.fromYMD(2023, month, 1)
+    end_date = ee.Date.fromYMD(2023, month, calendar.monthrange(2023, month)[1])
 
     # Filter the collections for the given month
     filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_CO') \
@@ -87,6 +87,8 @@ for month in range(1, 13):
         value = None
         print(f"Month: {month}, Value: None")  # Debug statement
     co_values.append(value)
+
+print(co_values)
 
 # Define month names for x-axis labels
 month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
