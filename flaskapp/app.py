@@ -7,7 +7,7 @@ from google.oauth2 import service_account
 app = Flask(__name__)
 
 # Path to your GCP service account key JSON file
-SERVICE_ACCOUNT_FILE = 'config/creds2.json'
+SERVICE_ACCOUNT_FILE = '/home/ubuntu/SSTA/config/creds2.json'
 
 
 # Constants
