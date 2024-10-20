@@ -7,14 +7,14 @@ from google.oauth2 import service_account
 app = Flask(__name__)
 
 # Path to your GCP service account key JSON file
-SERVICE_ACCOUNT_FILE = '/home/ubuntu/ssta/config/creds2.json'
+SERVICE_ACCOUNT_FILE = 'config/creds2.json'
 
 
 # Constants
 g = 9.82  # m/s^2
 m_H2O = 0.01801528  # kg/mol
 m_dry_air = 0.0289644  # kg/mol
-
+ 
 # Authenticate to GEE using the service account
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -37,7 +37,7 @@ def get_co_density():
 
     city_lat = float(request.args.get('lat'))
     city_lon = float(request.args.get('lon'))
-    buffer = request.args.get('buffer', default=25000, type=int) 
+    buffer = request.args.get('buffer', default=50000, type=int) 
 
     start_date = request.args.get('start_date', '2024-01-01')
     end_date = request.args.get('end_date', '2024-05-31')
@@ -53,6 +53,7 @@ def get_co_density():
     buffer_radius = buffer  # 25 kilometers in meters
     buffered_city_geometry = ee.Geometry.Point(city_lon, city_lat).buffer(buffer_radius)
 
+    # Fetch and process CO data
     if pollutant == 'CO':
         filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_CO') \
         .filterBounds(buffered_city_geometry) \
@@ -82,14 +83,6 @@ def get_co_density():
         # Convert XCO to ppb
         XCO_ppb_month = XCO_month.multiply(1e9).rename('XCO_ppb')
 
-        # dataset = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_CO') \
-        #             .select('CO_column_number_density') \
-        #             .filterDate(start_date, end_date) \
-        #             .filterBounds(buffered_city_geometry)
-
-        # # Calculate the mean CO density over the specified time period
-        # meanCO = dataset.mean().clip(buffered_city_geometry)
-
         meanCO = XCO_ppb_month
 
         min_max = meanCO.reduceRegion(
@@ -99,10 +92,8 @@ def get_co_density():
         bestEffort=True
         ).getInfo()
 
-
         min_value = round(min_max.get('XCO_ppb_min', 0), 2)
         max_value = round(min_max.get('XCO_ppb_max', 0), 2)
-
 
         vis_params = {
             'min': min_value,
@@ -114,87 +105,84 @@ def get_co_density():
 
         return jsonify({'tile_url': tile_url,'min': min_value,'max': max_value})
 
-
+    # Fetch and process NO2 data
     elif pollutant == 'NO2':
         filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_NO2') \
         .filterBounds(buffered_city_geometry) \
         .filterDate(start_date, end_date) \
         .select('NO2_column_number_density')
-        ###########################################
-
-        filtered_collection_h2o = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_CO') \
-        .filterBounds(buffered_city_geometry) \
-        .filterDate(start_date, end_date) \
-        .select(['CO_column_number_density', 'H2O_column_number_density'])
-
-        # Check if the collections are empty
-        if filtered_collection_h2o.size().getInfo() == 0:
-            return None
-
-        H2O_mean_month = filtered_collection_h2o.select('H2O_column_number_density').mean().clip(buffered_city_geometry)
-
-        ############################################
 
         surface_pressure_collection = ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR") \
             .filterBounds(buffered_city_geometry) \
             .filterDate(start_date, end_date) \
             .select('surface_pressure')
-    
+
         # Check if the collections are empty
         if filtered_collection.size().getInfo() == 0 or surface_pressure_collection.size().getInfo() == 0:
             return None
 
-        # Calculate the mean over the collection for NO2, H2O, and surface pressure
-        NO2_mean_month = filtered_collection.select('NO2_column_number_density').mean().clip(buffered_city_geometry)
-        H2O_mean_month = filtered_collection_h2o.select('H2O_column_number_density').mean().clip(buffered_city_geometry)
+        NO2_mean_month = filtered_collection.mean().clip(buffered_city_geometry)
         surface_pressure_mean_month = surface_pressure_collection.mean().clip(buffered_city_geometry)
 
-        # Calculate TC_dry_air for the month
-        TC_dry_air_month = surface_pressure_mean_month.divide(g * m_dry_air).subtract(H2O_mean_month.multiply(m_H2O / m_dry_air))
-
-        # Calculate XNO2 for the month
-        XNO2_month = NO2_mean_month.divide(TC_dry_air_month).rename('XNO2')
-
-        # Convert XNO2 to ppb
-        XNO2_ppb_month = XNO2_month.multiply(1e9).rename('XNO2_ppb')
-
-        # dataset = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_NO2') \
-        #             .select('NO2_column_number_density') \
-        #             .filterDate(start_date, end_date) \
-        #             .filterBounds(buffered_city_geometry)
-
-        # # Calculate the mean NO2 density over the specified time period
-        # meanNO2 = dataset.mean().clip(buffered_city_geometry)
-
-        meanNO2 = XNO2_ppb_month
-
-        min_max = meanNO2.reduceRegion(
+        min_max = NO2_mean_month.reduceRegion(
         reducer=ee.Reducer.minMax(),
         geometry=buffered_city_geometry,
         scale=1000,
         bestEffort=True
         ).getInfo()
 
-
-        min_value = round(min_max.get('XNO2_ppb_min', 0), 2)
-        max_value = round(min_max.get('XNO2_ppb_max', 0), 2)
-
+        min_value = round(min_max.get('NO2_column_number_density_min', 0), 2)
+        max_value = round(min_max.get('NO2_column_number_density_max', 0), 2)
 
         vis_params = {
             'min': min_value,
             'max': max_value,
             'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
         }
-        map_id = meanNO2.getMapId(vis_params)
+        map_id = NO2_mean_month.getMapId(vis_params)
         tile_url = map_id['tile_fetcher'].url_format
 
         return jsonify({'tile_url': tile_url,'min': min_value,'max': max_value})
 
+    # Fetch and process NO data
+    elif pollutant == 'NO':
+        filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_NO2') \
+        .filterBounds(buffered_city_geometry) \
+        .filterDate(start_date, end_date) \
+        .select('NO2_column_number_density') # Placeholder for NO data if available
+        
+        # Check if NO collection is available or use an alternative
+        # You may need to find an alternative dataset for NO
+        surface_pressure_collection = ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR") \
+            .filterBounds(buffered_city_geometry) \
+            .filterDate(start_date, end_date) \
+            .select('surface_pressure')
 
+        if filtered_collection.size().getInfo() == 0 or surface_pressure_collection.size().getInfo() == 0:
+            return None
 
-        # Filter the collections for the given month
-    
+        NO_mean_month = filtered_collection.mean().clip(buffered_city_geometry)
+        surface_pressure_mean_month = surface_pressure_collection.mean().clip(buffered_city_geometry)
 
+        min_max = NO_mean_month.reduceRegion(
+        reducer=ee.Reducer.minMax(),
+        geometry=buffered_city_geometry,
+        scale=1000,
+        bestEffort=True
+        ).getInfo()
+
+        min_value = round(min_max.get('NO2_column_number_density_min', 0), 2)  # Placeholder
+        max_value = round(min_max.get('NO2_column_number_density_max', 0), 2)  # Placeholder
+
+        vis_params = {
+            'min': min_value,
+            'max': max_value,
+            'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
+        }
+        map_id = NO_mean_month.getMapId(vis_params)
+        tile_url = map_id['tile_fetcher'].url_format
+
+        return jsonify({'tile_url': tile_url,'min': min_value,'max': max_value})
 
 @app.route('/')
 def index():
@@ -202,4 +190,3 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
