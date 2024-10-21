@@ -7,18 +7,16 @@
   <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    /* Full page height and width */
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    #map, #windy {
+    #map {
       height: 100%;
       width: 100%;
     }
     .map-container {
-      position: relative;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       z-index: 0;
     }
     .form-container {
@@ -72,12 +70,11 @@
 
   <section class="text-gray-600 body-font relative">
     <div class="map-container">
-      <div id="map"></div> <!-- Leaflet map -->
-      <div id="windy"></div> <!-- Windy overlay -->
+      <div id="map"></div>
     </div>
 
     <div class="container px-5 py-24 mx-auto flex">
-      <div class="lg:w-1/4 md:w-1/3 bg-white rounded-lg p-3 flex flex-col md:ml-auto w-full mt-5 md:mt-0 relative z-10 form-container">
+      <div class="lg:w-1/4 md:w-1/3 bg-white rounded-lg p-3 flex flex-col md:ml-auto w-full mt-5 md:mt-0 relative z-10 shadow-md form-container">
         <h2 class="text-gray-900 text-sm mb-2 font-medium title-font">Select City</h2>
         <p class="leading-relaxed mb-3 text-gray-600 text-xs">Select a city or enter the latitude and longitude to view the pollutant concentration (ppb) over that area.</p>
 
@@ -124,7 +121,7 @@
           </select>
         </div>
 
-        <!-- Show Air Direction Checkbox -->
+        <!-- Add the Show Air Direction checkbox -->
         <div class="relative mb-3 mt-3">
           <label for="show_air_direction" class="leading-7 text-xs text-gray-600">
             <input type="checkbox" id="show_air_direction" name="show_air_direction" class="mr-2">
@@ -165,31 +162,23 @@
           lat = 29.7604;
           lon = -95.3698;
         } else if (city === "Manual") {
-          lat = parseFloat(document.getElementById("lat").value);
-          lon = parseFloat(document.getElementById("lon").value);
+          lat = document.getElementById("lat").value;
+          lon = document.getElementById("lon").value;
         }
 
-        if (isNaN(lat) || isNaN(lon)) {
-          alert("Please enter valid latitude and longitude.");
+        if (!lat || !lon) {
+          alert("Please enter both latitude and longitude.");
           return;
         }
 
-        const bufferRadius = parseInt(document.getElementById("buffer").value, 10);
+        const buffer = document.getElementById("buffer").value;
         const startDate = document.getElementById("start_date").value;
         const endDate = document.getElementById("end_date").value;
         const pollutant = document.getElementById("pollutant").value;
         const showAirDirection = document.getElementById("show_air_direction").checked;
 
-        // Remove old buffer and create new one
-        let currentBuffer = L.circle([lat, lon], {
-          radius: bufferRadius,
-          color: "red",
-          fillColor: "#f03",
-          fillOpacity: 0.2,
-        }).addTo(map);
-
         // Fetch and display pollutant data
-        fetch(`/api/get-co-density?lat=${lat}&lon=${lon}&buffer=${bufferRadius}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}`)
+        fetch(`/api/get-co-density?lat=${lat}&lon=${lon}&buffer=${buffer}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}`)
           .then((response) => response.json())
           .then((data) => {
             if (data.error) {
@@ -197,12 +186,12 @@
               return;
             }
 
-            const pollutantLayer = L.tileLayer(data.tile_url, {
+            const layer = L.tileLayer(data.tile_url, {
               opacity: 0.5,
               attribution: '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
             });
 
-            // Clear previous pollutant layers
+            // Clear previous layers before adding the new one
             map.eachLayer(function (layer) {
               if (layer.options && layer.options.attribution) {
                 map.removeLayer(layer);
@@ -210,29 +199,47 @@
             });
 
             // Add the new pollutant layer and zoom to the location
-            pollutantLayer.addTo(map);
+            layer.addTo(map);
             map.setView([lat, lon], 10);
 
             updateLegend(data.min, data.max);
 
             // If "Show Air Direction" is checked, initialize Windy API
             if (showAirDirection) {
-              windyInit({
-                key: 'DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX', // Replace with your Windy API key
-                lat: lat,
-                lon: lon,
-                zoom: 10,
-                overlay: 'wind', // Set the overlay to wind
-              }, function (windyAPI) {
-                const { map: windyMap } = windyAPI;
+              // Fetch the Windy API key from the backend
+              fetch('/api/get-windy-api-key')
+                .then(response => response.json())
+                .then(apiData => {
+                  if (apiData.api_key) {
+                    windyInit({
+                      key: apiData.api_key,
+                      lat: lat,
+                      lon: lon,
+                      zoom: 10,
+                    }, function (windyAPI) {
+                      const { map: windyMap } = windyAPI;
+                      windyAPI.store.set('overlay', 'wind'); // Set the overlay to wind
 
-                // Synchronize Windy map with Leaflet map
-                map.on('moveend zoomend', () => {
-                  const center = map.getCenter();
-                  const zoom = map.getZoom();
-                  windyMap.setView([center.lat, center.lng], zoom);
+                      // Synchronize Windy map with Leaflet map
+                      const leafletMap = map;
+                      const windyMapObject = windyAPI.map;
+
+                      windyMapObject.options.minZoom = leafletMap.getMinZoom();
+                      windyMapObject.options.maxZoom = leafletMap.getMaxZoom();
+
+                      leafletMap.on('moveend zoomend', () => {
+                        const center = leafletMap.getCenter();
+                        const zoom = leafletMap.getZoom();
+                        windyMapObject.setView([center.lat, center.lng], zoom);
+                      });
+                    });
+                  } else {
+                    console.error('Windy API key not available');
+                  }
+                })
+                .catch(error => {
+                  console.error('Error fetching Windy API key:', error);
                 });
-              });
             }
           })
           .catch((error) => console.error("Error fetching Concentration Data:", error));
