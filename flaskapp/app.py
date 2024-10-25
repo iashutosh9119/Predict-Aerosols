@@ -5,8 +5,8 @@ import os
 
 app = Flask(__name__)
 
-SERVICE_ACCOUNT_FILE = '/home/ubuntu/ssta/config/creds2.json'
-# SERVICE_ACCOUNT_FILE = 'config/creds2.json'
+# SERVICE_ACCOUNT_FILE = '/home/ubuntu/ssta/config/creds2.json'
+SERVICE_ACCOUNT_FILE = 'config/creds2.json'
 
 # Load your Windy API key from an environment variable
 WINDY_API_KEY = "DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX"
@@ -56,7 +56,7 @@ def get_co_density():
 
         # Fetch and process the pollutant data
         if pollutant == 'CO':
-            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_CO') \
+            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_CO') \
                 .filterBounds(buffered_city_geometry) \
                 .filterDate(start_date, end_date) \
                 .select(['CO_column_number_density', 'H2O_column_number_density'])
@@ -107,38 +107,53 @@ def get_co_density():
             return jsonify({'tile_url': tile_url, 'min': min_value, 'max': max_value})
 
         elif pollutant == 'NO2':
-            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_NO2') \
+            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_NO2') \
                 .filterBounds(buffered_city_geometry) \
                 .filterDate(start_date, end_date) \
                 .select('NO2_column_number_density')
 
-            if filtered_collection.size().getInfo() == 0:
-                return jsonify({'error': 'No data available for the specified parameters.'}), 404
+            # Log collection size for debugging
+            collection_size = filtered_collection.size().getInfo()
+            print(f"NO2 collection size for the given parameters: {collection_size}")
 
+            if collection_size == 0:
+                return jsonify({'error': 'No NO2 data available for the specified parameters.'}), 404
+
+            # Calculate mean NO2 for the area
             NO2_mean_month = filtered_collection.mean().clip(buffered_city_geometry)
 
+            # Set visualization parameters explicitly
+            vis_params = {
+                'min': 0,          # match your GEE example's min value
+                'max': 0.0002,     # match your GEE example's max value
+                'palette': ['black', 'blue', 'purple', 'cyan', 'green', 'yellow', 'red']
+            }
+
+            # Use reduceRegion with a finer scale
             min_max = NO2_mean_month.reduceRegion(
                 reducer=ee.Reducer.minMax(),
                 geometry=buffered_city_geometry,
-                scale=1000,
+                scale=500,  # Try a finer scale like 500m
                 bestEffort=True
             ).getInfo()
 
-            min_value = round(min_max.get('NO2_column_number_density_min', 0), 2)
-            max_value = round(min_max.get('NO2_column_number_density_max', 0), 2)
+            min_value = round(min_max.get('NO2_column_number_density_min', 0), 8)
+            max_value = round(min_max.get('NO2_column_number_density_max', 0), 8)
 
-            vis_params = {
-                'min': min_value,
-                'max': max_value,
-                'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
-            }
+            if min_value == 0 and max_value == 0:
+                return jsonify({'error': 'NO2 data is too low or not available for visualization in this area/date range.'}), 404
+
+            # Generate map tiles
             map_id = NO2_mean_month.getMapId(vis_params)
             tile_url = map_id['tile_fetcher'].url_format
 
             return jsonify({'tile_url': tile_url, 'min': min_value, 'max': max_value})
 
+
+
+
         elif pollutant == 'PM2.5':
-            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_AER_AI') \
+            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_AER_AI') \
                 .filterBounds(buffered_city_geometry) \
                 .filterDate(start_date, end_date) \
                 .select('absorbing_aerosol_index')
@@ -146,7 +161,7 @@ def get_co_density():
             if filtered_collection.size().getInfo() == 0:
                 return jsonify({'error': 'No data available for the specified parameters.'}), 404
 
-            PM2_5_mean_month = filtered_collection.mean().clip(buffered_city_geometry)
+            PM2_5_mean_month = filtered_collection.mean().clip(buffered_city_geometry).multiply(0.7)
 
             min_max = PM2_5_mean_month.reduceRegion(
                 reducer=ee.Reducer.minMax(),
@@ -169,7 +184,7 @@ def get_co_density():
             return jsonify({'tile_url': tile_url, 'min': min_value, 'max': max_value})
 
         elif pollutant == 'PM10':
-            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_AER_AI') \
+            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_AER_AI') \
                 .filterBounds(buffered_city_geometry) \
                 .filterDate(start_date, end_date) \
                 .select('absorbing_aerosol_index')
@@ -177,7 +192,7 @@ def get_co_density():
             if filtered_collection.size().getInfo() == 0:
                 return jsonify({'error': 'No data available for the specified parameters.'}), 404
 
-            PM10_mean_month = filtered_collection.mean().clip(buffered_city_geometry)
+            PM10_mean_month = filtered_collection.mean().clip(buffered_city_geometry).multiply(1.2)
 
             min_max = PM10_mean_month.reduceRegion(
                 reducer=ee.Reducer.minMax(),
@@ -199,13 +214,11 @@ def get_co_density():
 
             return jsonify({'tile_url': tile_url, 'min': min_value, 'max': max_value})
 
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get-windy-api-key', methods=['GET'])
 def get_windy_api_key():
-    # Optionally, implement authentication here
     if WINDY_API_KEY:
         return jsonify({'api_key': WINDY_API_KEY})
     else:

@@ -117,7 +117,7 @@
     <div class="container px-5 py-24 mx-auto flex">
       <div class="lg:w-1/4 md:w-1/3 bg-white rounded-lg p-3 flex flex-col md:ml-auto w-full mt-5 md:mt-0 relative z-10 form-container">
         <h2 class="text-gray-900 text-sm mb-2 font-medium title-font">Select City</h2>
-        <p class="leading-relaxed mb-3 text-gray-600 text-xs">Select a city or enter the latitude and longitude to view the pollutant concentration (ppb) over that area.</p>
+        <p class="leading-relaxed mb-3 text-gray-600 text-xs">Select a city or enter the latitude and longitude to view the pollutant concentration over that area.</p>
 
         <div class="relative mb-3">
           <label for="city" class="leading-7 text-xs text-gray-600">City</label>
@@ -146,11 +146,11 @@
 
         <div class="relative mb-3">
           <label for="start_date" class="leading-7 text-xs text-gray-600">Start Date</label>
-          <input type="date" id="start_date" name="start_date" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" value="2024-01-01" />
+          <input type="date" id="start_date" name="start_date" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" value="2024-06-01" />
         </div>
         <div class="relative mb-3">
           <label for="end_date" class="leading-7 text-xs text-gray-600">End Date</label>
-          <input type="date" id="end_date" name="end_date" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" value="2024-05-31" />
+          <input type="date" id="end_date" name="end_date" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" value="2024-06-06" />
         </div>
 
         <div class="relative lg:w-full xl:w-full w-full mt-3">
@@ -163,7 +163,6 @@
           </select>
         </div>
 
-        <!-- Show Air Direction Checkbox -->
         <div class="relative mb-3 mt-3">
           <label for="show_air_direction" class="leading-7 text-xs text-gray-600">
             <input type="checkbox" id="show_air_direction" name="show_air_direction" class="mr-2">
@@ -179,26 +178,22 @@
     <div id="legend" class="legend"></div>
   </section>
 
-  <!-- Include Leaflet and Windy API -->
   <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
   <script src="https://api.windy.com/assets/map-forecast/libBoot.js"></script>
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      // Initialize the Leaflet map
       const leafletMap = L.map("map").setView([20, 0], 2);
 
-      // Add OpenStreetMap tile layer
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
       }).addTo(leafletMap);
 
-      let windyAPIInstance = null; // To store Windy API instance
-      let currentBuffer = null; // Circle buffer on map
+      let windyAPIInstance = null;
+      let currentBuffer = null;
       let windyDiv = document.getElementById("windy");
 
       document.getElementById("show-concentration-btn").addEventListener("click", function () {
-        // Get form values
         const city = document.getElementById("city").value;
         let lat, lon;
 
@@ -224,7 +219,6 @@
         const pollutant = document.getElementById("pollutant").value;
         const showAirDirection = document.getElementById("show_air_direction").checked;
 
-        // Remove old buffer and create new one
         if (currentBuffer) {
           leafletMap.removeLayer(currentBuffer);
         }
@@ -234,10 +228,9 @@
           fillColor: "#f03",
           fillOpacity: 0,
         }).addTo(leafletMap);
-         // Ensure map fits the buffer area
-    leafletMap.fitBounds(currentBuffer.getBounds());
 
-        // Fetch and display pollutant data
+        leafletMap.fitBounds(currentBuffer.getBounds());
+
         fetch(`/api/get-co-density?lat=${lat}&lon=${lon}&buffer=${bufferRadius}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}`)
           .then((response) => response.json())
           .then((data) => {
@@ -248,45 +241,39 @@
 
             const pollutantLayer = L.tileLayer(data.tile_url, {
               opacity: 0.6,
-              minZoom: 1,   // Support zooming out to level 2 (adjust as needed)
-              maxZoom: 1000,  // Support zooming in to level 19 (adjust as needed)
+              minZoom: 1,
+              maxZoom: 1000,
               attribution: '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
             });
             
-
-            // Clear previous pollutant layers
             leafletMap.eachLayer(function (layer) {
               if (layer.options && layer.options.attribution) {
                 leafletMap.removeLayer(layer);
               }
             });
 
-            // Add the new pollutant layer and zoom to the location
             pollutantLayer.addTo(leafletMap);
-           
-         // Ensure map fits the buffer area
-    leafletMap.fitBounds(currentBuffer.getBounds());
 
-            updateLegend(data.min, data.max);
+            leafletMap.fitBounds(currentBuffer.getBounds());
 
-            // If "Show Air Direction" is checked, initialize Windy API
+            const unit = pollutant === "PM2.5" || pollutant === "PM10" ? "µg/m³" : (pollutant === "NO2" ? "mol/m²" : "ppb");
+            updateLegend(data.min, data.max, unit);
+
             if (showAirDirection) {
               if (!windyAPIInstance) {
-                // Initialize Windy API
                 windyInit({
-                  key: 'DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX', // Your Windy API key
+                  key: 'DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX',
                   lat: lat,
                   lon: lon,
                   zoom: 10,
-                  container: 'windy', // Specify the Windy container
-                  overlay: 'wind', // Set the overlay to wind
+                  container: 'windy',
+                  overlay: 'wind',
                 }, function (windyAPI) {
                   console.log('Windy API Initialized');
                   windyAPIInstance = windyAPI;
 
                   const { map: windyMap } = windyAPI;
 
-                  // Synchronize Windy map with Leaflet map
                   leafletMap.on('moveend zoomend', () => {
                     const center = leafletMap.getCenter();
                     const zoom = leafletMap.getZoom();
@@ -294,19 +281,18 @@
                   });
                 });
               }
-              windyDiv.style.display = "block"; // Show Windy map
+              windyDiv.style.display = "block";
             } else {
-              // Hide Windy map if not needed
               windyDiv.style.display = "none";
             }
           })
           .catch((error) => console.error("Error fetching Concentration Data:", error));
       });
 
-      function updateLegend(minValue, maxValue) {
+      function updateLegend(minValue, maxValue, unit) {
         const legend = document.getElementById("legend");
         legend.innerHTML = `
-          <h4>Concentration (ppb)</h4>
+          <h4>Concentration (${unit})</h4>
           <div class="gradient"></div>
           <div class="labels">
             <span>${minValue}</span>
@@ -315,7 +301,6 @@
         `;
       }
 
-      // Show or hide manual input fields based on city selection
       document.getElementById("city").addEventListener("change", function () {
         if (this.value === "Manual") {
           document.getElementById("manual-inputs").style.display = "block";
