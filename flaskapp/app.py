@@ -5,12 +5,11 @@ import os
 
 app = Flask(__name__)
 
-# Path to your GCP service account key JSON file
 SERVICE_ACCOUNT_FILE = '/home/ubuntu/ssta/config/creds2.json'
 # SERVICE_ACCOUNT_FILE = 'config/creds2.json'
 
 # Load your Windy API key from an environment variable
-WINDY_API_KEY = "DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX" #os.environ.get('WINDY_API_KEY')
+WINDY_API_KEY = "DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX"
 
 # Constants for pollutant calculations
 g = 9.82  # m/s^2
@@ -138,12 +137,68 @@ def get_co_density():
 
             return jsonify({'tile_url': tile_url, 'min': min_value, 'max': max_value})
 
-        elif pollutant == 'NO':
-            # Note: Sentinel-5P does not provide NO data directly.
-            # Placeholder for NO data if available in another dataset
-            return jsonify({'error': 'NO data is not available in the current dataset.'}), 404
-        else:
-            return jsonify({'error': 'Unsupported pollutant type.'}), 400
+        elif pollutant == 'PM2.5':
+            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_AER_AI') \
+                .filterBounds(buffered_city_geometry) \
+                .filterDate(start_date, end_date) \
+                .select('absorbing_aerosol_index')
+
+            if filtered_collection.size().getInfo() == 0:
+                return jsonify({'error': 'No data available for the specified parameters.'}), 404
+
+            PM2_5_mean_month = filtered_collection.mean().clip(buffered_city_geometry)
+
+            min_max = PM2_5_mean_month.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=1000,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = round(min_max.get('absorbing_aerosol_index_min', 0), 2)
+            max_value = round(min_max.get('absorbing_aerosol_index_max', 0), 2)
+
+            vis_params = {
+                'min': min_value,
+                'max': max_value,
+                'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
+            }
+            map_id = PM2_5_mean_month.getMapId(vis_params)
+            tile_url = map_id['tile_fetcher'].url_format
+
+            return jsonify({'tile_url': tile_url, 'min': min_value, 'max': max_value})
+
+        elif pollutant == 'PM10':
+            filtered_collection = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_AER_AI') \
+                .filterBounds(buffered_city_geometry) \
+                .filterDate(start_date, end_date) \
+                .select('absorbing_aerosol_index')
+
+            if filtered_collection.size().getInfo() == 0:
+                return jsonify({'error': 'No data available for the specified parameters.'}), 404
+
+            PM10_mean_month = filtered_collection.mean().clip(buffered_city_geometry)
+
+            min_max = PM10_mean_month.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=1000,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = round(min_max.get('absorbing_aerosol_index_min', 0), 2)
+            max_value = round(min_max.get('absorbing_aerosol_index_max', 0), 2)
+
+            vis_params = {
+                'min': min_value,
+                'max': max_value,
+                'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
+            }
+            map_id = PM10_mean_month.getMapId(vis_params)
+            tile_url = map_id['tile_fetcher'].url_format
+
+            return jsonify({'tile_url': tile_url, 'min': min_value, 'max': max_value})
+
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
