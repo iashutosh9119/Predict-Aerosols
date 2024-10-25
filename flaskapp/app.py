@@ -5,8 +5,8 @@ import os
 
 app = Flask(__name__)
 
-# SERVICE_ACCOUNT_FILE = '/home/ubuntu/ssta/config/creds2.json'
-SERVICE_ACCOUNT_FILE = 'config/creds2.json'
+SERVICE_ACCOUNT_FILE = '/home/ubuntu/ssta/config/creds2.json'
+# SERVICE_ACCOUNT_FILE = 'config/creds2.json'
 
 # Load your Windy API key from an environment variable
 WINDY_API_KEY = "DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX"
