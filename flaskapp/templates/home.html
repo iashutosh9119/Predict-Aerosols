@@ -1,13 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Meta Tags -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pollutant Concentration and Wind Animation</title>
-  <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet" />
+
   <script src="https://unpkg.com/leaflet-polygon-mask"></script>
 
+  <!-- Tailwind CSS -->
+  <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <!-- Custom Styles -->
   <style>
     /* Ensure the body and html take full height */
     html, body {
@@ -45,7 +52,7 @@
       left: 0;
       z-index: 1; /* Windy overlay above Leaflet */
       pointer-events: none; /* Allow interactions to pass through */
-      opacity: 0.5; /* Adjust opacity as needed */
+      opacity: 0.6; /* Adjust opacity as needed */
       display: none;
     }
 
@@ -99,7 +106,6 @@
       <nav class="md:ml-auto flex flex-wrap items-center text-base justify-center">
         <a href="/" class="mr-5 hover:text-gray-900">Home</a>
         <a href="/about" class="mr-5 hover:text-gray-900">About Us</a>
-        <a href="/contact" class="mr-5 hover:text-gray-900">Contact Us</a>
         <a href="https://github.com/drashutoshspace/SSTA-Smart-System-for-Tracking-Airpollution" target="_blank" class="mr-5 hover:text-gray-900">Github</a>
       </nav>
     </div>
@@ -119,15 +125,18 @@
         <h2 class="text-gray-900 text-sm mb-2 font-medium title-font">Select City</h2>
         <p class="leading-relaxed mb-3 text-gray-600 text-xs">Select a city or enter the latitude and longitude to view the pollutant concentration over that area.</p>
 
+        <!-- City Selection -->
         <div class="relative mb-3">
           <label for="city" class="leading-7 text-xs text-gray-600">City</label>
           <select id="city" name="city" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out">
+            <option value="Hyderabad">Hyderabad</option>
             <option value="Delhi">Delhi</option>
             <option value="Houston">Houston</option>
             <option value="Manual">Manual</option>
           </select>
         </div>
 
+        <!-- Manual Latitude and Longitude Inputs -->
         <div id="manual-inputs" style="display: none">
           <div class="relative mb-3">
             <label for="lat" class="leading-7 text-xs text-gray-600">Latitude</label>
@@ -139,20 +148,23 @@
           </div>
         </div>
 
+        <!-- Buffer Radius -->
         <div class="relative mb-3">
           <label for="buffer" class="leading-7 text-xs text-gray-600">Buffer Radius (meters)</label>
           <input type="text" id="buffer" name="buffer" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" value="50000" />
         </div>
 
+        <!-- Start and End Dates -->
         <div class="relative mb-3">
           <label for="start_date" class="leading-7 text-xs text-gray-600">Start Date</label>
-          <input type="date" id="start_date" name="start_date" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" value="2024-06-01" />
+          <input type="date" id="start_date" name="start_date" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" />
         </div>
         <div class="relative mb-3">
           <label for="end_date" class="leading-7 text-xs text-gray-600">End Date</label>
-          <input type="date" id="end_date" name="end_date" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" value="2024-06-06" />
+          <input type="date" id="end_date" name="end_date" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out" />
         </div>
 
+        <!-- Pollutant Selection -->
         <div class="relative lg:w-full xl:w-full w-full mt-3">
           <label for="pollutant" class="leading-7 text-xs text-gray-600">Pollutant</label>
           <select id="pollutant" name="pollutant" class="w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out">
@@ -160,9 +172,13 @@
             <option value="NO2">NO2</option>
             <option value="PM2.5">PM2.5</option>
             <option value="PM10">PM10</option>
+            <option value="SO2">SO2</option>
+            <option value="O3">O3</option>
+            <option value="HCHO">HCHO</option>
           </select>
         </div>
 
+        <!-- Show Air Direction Checkbox -->
         <div class="relative mb-3 mt-3">
           <label for="show_air_direction" class="leading-7 text-xs text-gray-600">
             <input type="checkbox" id="show_air_direction" name="show_air_direction" class="mr-2">
@@ -170,7 +186,14 @@
           </label>
         </div>
 
-        <button id="show-concentration-btn" class="inline-flex text-white bg-indigo-500 border-0 py-2 px-4 focus:outline-none hover:bg-indigo-600 rounded text-sm mt-3">Show Concentration</button>
+        <!-- Show Concentration Button with Loading Spinner -->
+        <button id="show-concentration-btn" class="inline-flex items-center justify-center text-white bg-indigo-500 border-0 py-2 px-4 focus:outline-none hover:bg-indigo-600 rounded text-sm mt-3">
+          <span id="button-text">Show Concentration</span>
+          <svg id="loading-spinner" class="animate-spin h-5 w-5 ml-2 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -178,13 +201,19 @@
     <div id="legend" class="legend"></div>
   </section>
 
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+
+  <!-- Windy API JS -->
   <script src="https://api.windy.com/assets/map-forecast/libBoot.js"></script>
 
+  <!-- Main Script -->
   <script>
     document.addEventListener("DOMContentLoaded", function () {
+      // Initialize Leaflet Map
       const leafletMap = L.map("map").setView([20, 0], 2);
 
+      // Add OpenStreetMap Tile Layer
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
       }).addTo(leafletMap);
@@ -192,14 +221,57 @@
       let windyAPIInstance = null;
       let currentBuffer = null;
       let windyDiv = document.getElementById("windy");
+      let currentPollutantLayer = null; // Keep track of the current pollutant layer
 
+      // Set default dates for start_date and end_date inputs
+      const endDateInput = document.getElementById("end_date");
+      const startDateInput = document.getElementById("start_date");
+
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const oneMonthBeforeYesterday = new Date(yesterday);
+      oneMonthBeforeYesterday.setMonth(oneMonthBeforeYesterday.getMonth() - 1);
+
+      // Format dates to YYYY-MM-DD
+      const formatDate = (date) => {
+        let month = '' + (date.getMonth() + 1);
+        let day = '' + date.getDate();
+        const year = date.getFullYear();
+
+        if (month.length < 2)
+          month = '0' + month;
+        if (day.length < 2)
+          day = '0' + day;
+
+        return [year, month, day].join('-');
+      }
+
+      endDateInput.value = formatDate(yesterday);
+      startDateInput.value = formatDate(oneMonthBeforeYesterday);
+
+      // Event Listener for "Show Concentration" Button
       document.getElementById("show-concentration-btn").addEventListener("click", function () {
+        const showConcentrationBtn = document.getElementById("show-concentration-btn");
+        const loadingSpinner = document.getElementById("loading-spinner");
+        const buttonText = document.getElementById("button-text");
+
+        // Show the loading spinner and change the button text
+        loadingSpinner.classList.remove("hidden");
+        buttonText.textContent = "Loading...";
+        showConcentrationBtn.disabled = true;
+
         const city = document.getElementById("city").value;
         let lat, lon;
 
+        // Set Latitude and Longitude Based on Selected City
         if (city === "Delhi") {
           lat = 28.7041;
           lon = 77.1025;
+        } else if (city === "Hyderabad") {
+          lat = 17.4065;
+          lon = 78.4772;
         } else if (city === "Houston") {
           lat = 29.7604;
           lon = -95.3698;
@@ -208,8 +280,13 @@
           lon = parseFloat(document.getElementById("lon").value);
         }
 
+        // Validate Latitude and Longitude
         if (isNaN(lat) || isNaN(lon)) {
           alert("Please enter valid latitude and longitude.");
+          // Hide the loading spinner and reset the button text
+          loadingSpinner.classList.add("hidden");
+          buttonText.textContent = "Show Concentration";
+          showConcentrationBtn.disabled = false;
           return;
         }
 
@@ -219,9 +296,12 @@
         const pollutant = document.getElementById("pollutant").value;
         const showAirDirection = document.getElementById("show_air_direction").checked;
 
+        // Remove Existing Buffer if Any
         if (currentBuffer) {
           leafletMap.removeLayer(currentBuffer);
         }
+
+        // Add New Buffer Circle
         currentBuffer = L.circle([lat, lon], {
           radius: bufferRadius,
           color: "red",
@@ -229,43 +309,76 @@
           fillOpacity: 0,
         }).addTo(leafletMap);
 
+        // Adjust Map View to Fit Buffer Bounds
         leafletMap.fitBounds(currentBuffer.getBounds());
 
-        fetch(`/api/get-co-density?lat=${lat}&lon=${lon}&buffer=${bufferRadius}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}`)
+        // Fetch Pollutant Data from API
+        fetch(`/api/get-pollutant?lat=${lat}&lon=${lon}&buffer=${bufferRadius}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}`)
           .then((response) => response.json())
           .then((data) => {
             if (data.error) {
               alert(data.error);
+              // Hide the loading spinner and reset the button text
+              loadingSpinner.classList.add("hidden");
+              buttonText.textContent = "Show Concentration";
+              showConcentrationBtn.disabled = false;
               return;
             }
 
+            // Create Pollutant Layer
             const pollutantLayer = L.tileLayer(data.tile_url, {
               opacity: 0.6,
               minZoom: 1,
               maxZoom: 1000,
               attribution: '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
             });
-            
-            leafletMap.eachLayer(function (layer) {
-              if (layer.options && layer.options.attribution) {
-                leafletMap.removeLayer(layer);
-              }
+
+            // Remove Existing Pollutant Layer
+            if (currentPollutantLayer) {
+              leafletMap.removeLayer(currentPollutantLayer);
+            }
+
+            // Add Event Listener for Tile Layer Load Completion
+            pollutantLayer.on('load', function () {
+              // Tiles are fully loaded
+              // Hide the loading spinner and reset the button text
+              loadingSpinner.classList.add("hidden");
+              buttonText.textContent = "Show Concentration";
+              showConcentrationBtn.disabled = false;
             });
 
+            // Add Pollutant Layer to Map
             pollutantLayer.addTo(leafletMap);
+            currentPollutantLayer = pollutantLayer;
 
-            leafletMap.fitBounds(currentBuffer.getBounds());
+            // Define Units for Pollutants
+            const pollutantUnits = {
+              "PM2.5": "µg/m³",
+              "PM10": "µg/m³",
+              "NO2": "mol/m²",
+              "SO2": "mol/m²",
+              "O3": "mol/m²",
+              "HCHO": "mol/m²",
+              "CH4": "ppb",
+              "CO": "ppb"
+            };
 
-            const unit = pollutant === "PM2.5" || pollutant === "PM10" ? "µg/m³" : (pollutant === "NO2" ? "mol/m²" : "ppb");
+            // Get Unit for Selected Pollutant
+            const unit = pollutantUnits[pollutant] || "";
+
+            // Update Legend
             updateLegend(data.min, data.max, unit);
 
+            // Initialize Windy API if Wind Flow is Selected
             if (showAirDirection) {
+              windyDiv.style.display = "block";
+
               if (!windyAPIInstance) {
                 windyInit({
-                  key: 'DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX',
+                  key: 'DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX', // Replace 'YOUR_API_KEY' with your actual API key
                   lat: lat,
                   lon: lon,
-                  zoom: 10,
+                  zoom: leafletMap.getZoom(),
                   container: 'windy',
                   overlay: 'wind',
                 }, function (windyAPI) {
@@ -274,21 +387,41 @@
 
                   const { map: windyMap } = windyAPI;
 
+                  // Synchronize Windy Map with Leaflet Map
                   leafletMap.on('moveend zoomend', () => {
                     const center = leafletMap.getCenter();
                     const zoom = leafletMap.getZoom();
                     windyMap.setView([center.lat, center.lng], zoom);
                   });
+
+                  // Initial synchronization
+                  const center = leafletMap.getCenter();
+                  const zoom = leafletMap.getZoom();
+                  windyMap.setView([center.lat, center.lng], zoom);
                 });
+              } else {
+                // If Windy is already initialized, just update the view
+                const { map: windyMap } = windyAPIInstance;
+                const center = leafletMap.getCenter();
+                const zoom = leafletMap.getZoom();
+                windyMap.setView([center.lat, center.lng], zoom);
               }
-              windyDiv.style.display = "block";
             } else {
               windyDiv.style.display = "none";
             }
           })
-          .catch((error) => console.error("Error fetching Concentration Data:", error));
+          .catch((error) => {
+            console.error("Error fetching Concentration Data:", error);
+            alert("An error occurred while fetching data.");
+
+            // Hide the loading spinner and reset the button text
+            loadingSpinner.classList.add("hidden");
+            buttonText.textContent = "Show Concentration";
+            showConcentrationBtn.disabled = false;
+          });
       });
 
+      // Function to Update Legend
       function updateLegend(minValue, maxValue, unit) {
         const legend = document.getElementById("legend");
         legend.innerHTML = `
@@ -301,6 +434,7 @@
         `;
       }
 
+      // Event Listener for City Selection Change
       document.getElementById("city").addEventListener("change", function () {
         if (this.value === "Manual") {
           document.getElementById("manual-inputs").style.display = "block";
