@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-SERVICE_ACCOUNT_FILE = '/home/ashutosh/Workspace/Predict-Aerosols/config/creds2.json'
+SERVICE_ACCOUNT_FILE = 'config/creds2.json'
 
 # Load your Windy API key
 WINDY_API_KEY = "DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX"
