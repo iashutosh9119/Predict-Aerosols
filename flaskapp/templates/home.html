@@ -429,8 +429,9 @@
         const legend = document.getElementById("legend");
         const formattedMin = parseFloat(minValue).toFixed(2);
         const formattedMax = parseFloat(maxValue).toFixed(2);
+        const pollutant = document.getElementById("pollutant").value;
         legend.innerHTML = `
-          <h4>Concentration (${unit})</h4>
+          <h4>Concentration of ${pollutant} in (${unit})</h4>
           <div class="gradient"></div>
           <div class="labels">
             <span>${formattedMin}</span>
