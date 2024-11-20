@@ -129,10 +129,27 @@
         <div class="relative mb-3">
           <label for="city" class="leading-7 text-xs text-gray-600">City</label>
           <select id="city" name="city" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-xs outline-none text-gray-700 py-1 px-2 leading-6 transition-colors duration-200 ease-in-out">
-            <option value="Hyderabad">Hyderabad</option>
+            <option value="Manual"><b>Enter Manually</b></option>
             <option value="Delhi">Delhi</option>
-            <option value="Houston">Houston</option>
-            <option value="Manual">Manual</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Kolkata">Kolkata</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Bengaluru">Bengaluru</option>
+            <option value="Hyderabad" selected>Hyderabad</option>
+            <option value="Pune">Pune</option>
+            <option value="Ahmedabad">Ahmedabad</option>
+            <option value="Jaipur">Jaipur</option>
+            <option value="Lucknow">Lucknow</option>
+            <option value="Surat">Surat</option>
+            <option value="Kanpur">Kanpur</option>
+            <option value="Nagpur">Nagpur</option>
+            <option value="Indore">Indore</option>
+            <option value="Thane">Thane</option>
+            <option value="Bhopal">Bhopal</option>
+            <option value="Patna">Patna</option>
+            <option value="Vadodara">Vadodara</option>
+            <option value="Ludhiana">Ludhiana</option>
+            <option value="Agra">Agra</option>            
           </select>
         </div>
 
@@ -267,15 +284,67 @@
 
         // Set Latitude and Longitude Based on Selected City
         if (city === "Delhi") {
-          lat = 28.7041;
-          lon = 77.1025;
+          lat = 28.6139;
+          lon = 77.2090;
+        } else if (city === "Mumbai") {
+          lat = 19.0760;
+          lon = 72.8777;
+        } else if (city === "Kolkata") {
+          lat = 22.5726;
+          lon = 88.3639;
+        } else if (city === "Chennai") {
+          lat = 13.0827;
+          lon = 80.2707;
+        } else if (city === "Bengaluru") {
+          lat = 12.9716;
+          lon = 77.5946;
         } else if (city === "Hyderabad") {
-          lat = 17.4065;
-          lon = 78.4772;
-        } else if (city === "Houston") {
-          lat = 29.7604;
-          lon = -95.3698;
-        } else if (city === "Manual") {
+          lat = 17.3850;
+          lon = 78.4867;
+        } else if (city === "Pune") {
+          lat = 18.5204;
+          lon = 73.8567;
+        } else if (city === "Ahmedabad") {
+          lat = 23.0225;
+          lon = 72.5714;
+        } else if (city === "Jaipur") {
+          lat = 26.9124;
+          lon = 75.7873;
+        } else if (city === "Lucknow") {
+          lat = 26.8467;
+          lon = 80.9462;
+        } else if (city === "Surat") {
+          lat = 21.1702;
+          lon = 72.8311;
+        } else if (city === "Kanpur") {
+          lat = 26.4499;
+          lon = 80.3319;
+        } else if (city === "Nagpur") {
+          lat = 21.1458;
+          lon = 79.0882;
+        } else if (city === "Indore") {
+          lat = 22.7196;
+          lon = 75.8577;
+        } else if (city === "Thane") {
+          lat = 19.2183;
+          lon = 72.9781;
+        } else if (city === "Bhopal") {
+          lat = 23.2599;
+          lon = 77.4126;
+        } else if (city === "Patna") {
+          lat = 25.5941;
+          lon = 85.1376;
+        } else if (city === "Vadodara") {
+          lat = 22.3072;
+          lon = 73.1812;
+        } else if (city === "Ludhiana") {
+          lat = 30.9010;
+          lon = 75.8573;
+        } else if (city === "Agra") {
+          lat = 27.1767;
+          lon = 78.0081;
+        }
+         else if (city === "Manual") {
           lat = parseFloat(document.getElementById("lat").value);
           lon = parseFloat(document.getElementById("lon").value);
         }
