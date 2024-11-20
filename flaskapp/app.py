@@ -64,7 +64,7 @@ def index():
 # Route for the about page
 @app.route('/about/')
 def about():
-    return render_template('about_us.html')
+    return render_template('about.html')
 
 # Route for the sample page
 @app.route('/sample/')
