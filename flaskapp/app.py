@@ -1,11 +1,18 @@
+import os
 from flask import Flask, jsonify, render_template, request
 import ee
 from google.oauth2 import service_account
 from datetime import datetime, timedelta
+import math  # Import math module for logarithmic calculations
 
 app = Flask(__name__)
 
-SERVICE_ACCOUNT_FILE = 'config/creds2.json'
+# Define the file paths
+file_path = "/home/ubuntu/ssta/config/creds2.json"
+default_path = "config/creds2.json"
+
+# Check if the file exists and assign the appropriate value to the variable
+SERVICE_ACCOUNT_FILE = file_path if os.path.exists(file_path) else default_path
 
 # Load your Windy API key
 WINDY_API_KEY = "DHnqHp6YzeueWA6uhkK3cxT8USF5QsuX"
@@ -21,6 +28,33 @@ credentials = service_account.Credentials.from_service_account_file(
     scopes=['https://www.googleapis.com/auth/cloud-platform']
 )
 ee.Initialize(credentials)
+
+# Function to adjust units based on data range
+def adjust_units(min_value, max_value, base_unit):
+    prefixes = {
+        -12: 'p',
+        -9: 'n',
+        -6: 'μ',
+        -3: 'm',
+        0: '',
+        3: 'k',
+        6: 'M',
+        9: 'G',
+        12: 'T'
+    }
+
+    abs_max = max(abs(min_value), abs(max_value))
+    if abs_max == 0:
+        exponent = 0
+    else:
+        exponent = int(math.floor(math.log10(abs_max)))
+        exponent = (exponent // 3) * 3  # Round to nearest lower multiple of 3
+        exponent = min(max(exponent, -12), 12)  # Limit exponent between -12 and 12
+
+    scaling_factor = 10 ** (-exponent)
+    prefix = prefixes.get(exponent, '')
+    adjusted_unit = f"{prefix}{base_unit}"
+    return scaling_factor, adjusted_unit
 
 # Route for the home page
 @app.route('/')
@@ -92,7 +126,28 @@ def get_pollutant():
             PM10_mean = aerosol_index_mean.multiply(50).add(20)  # Adjust scaling factor and offset as needed
             pollutant_mean = PM10_mean.rename('PM10')
 
-            # Calculate percentiles for visualization
+            # Calculate initial min and max values for scaling
+            stats = pollutant_mean.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=1000,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = stats.get('PM10_min', None)
+            max_value = stats.get('PM10_max', None)
+
+            if min_value is None or max_value is None:
+                return jsonify({'error': 'Could not calculate data range for PM10.'}), 500
+
+            # Adjust units and scaling
+            base_unit = 'µg/m³'
+            scaling_factor, adjusted_unit = adjust_units(min_value, max_value, base_unit)
+
+            # Apply scaling factor to pollutant_mean
+            pollutant_mean = pollutant_mean.multiply(scaling_factor)
+
+            # Recalculate min and max values after scaling
             percentiles = pollutant_mean.reduceRegion(
                 reducer=ee.Reducer.percentile([5, 95]),
                 geometry=buffered_city_geometry,
@@ -108,6 +163,7 @@ def get_pollutant():
 
             min_value = round(min_value, 2)
             max_value = round(max_value, 2)
+            unit = adjusted_unit
 
         elif pollutant == 'PM2.5':
             # Fetch and process the PM2.5 data using the MODIS dataset
@@ -118,7 +174,7 @@ def get_pollutant():
 
             if filtered_collection.size().getInfo() == 0:
                 return jsonify({'error': 'No PM2.5 data available for the specified parameters.'}), 404
-            
+
             def mask_negative_values(image):
                 return image.updateMask(image.gte(0))
 
@@ -129,7 +185,28 @@ def get_pollutant():
                 .multiply(206.91).add(41.181)
             pollutant_mean = PM2_5_mean.rename('PM2_5')
 
-            # Calculate percentiles for visualization
+            # Calculate initial min and max values for scaling
+            stats = pollutant_mean.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=1000,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = stats.get('PM2_5_min', None)
+            max_value = stats.get('PM2_5_max', None)
+
+            if min_value is None or max_value is None:
+                return jsonify({'error': 'Could not calculate data range for PM2.5.'}), 500
+
+            # Adjust units and scaling
+            base_unit = 'µg/m³'
+            scaling_factor, adjusted_unit = adjust_units(min_value, max_value, base_unit)
+
+            # Apply scaling factor to pollutant_mean
+            pollutant_mean = pollutant_mean.multiply(scaling_factor)
+
+            # Recalculate min and max values after scaling
             percentiles = pollutant_mean.reduceRegion(
                 reducer=ee.Reducer.percentile([5, 95]),
                 geometry=buffered_city_geometry,
@@ -145,6 +222,7 @@ def get_pollutant():
 
             min_value = round(min_value, 2)
             max_value = round(max_value, 2)
+            unit = adjusted_unit
 
         elif pollutant == 'NO2':
             # Fetch and process the NO2 data from Sentinel-5P
@@ -158,7 +236,7 @@ def get_pollutant():
 
             if collection_size == 0:
                 return jsonify({'error': 'No NO2 data available for the specified parameters.'}), 404
-            
+
             def mask_negative_values(image):
                 return image.updateMask(image.gte(0))
 
@@ -167,7 +245,28 @@ def get_pollutant():
             NO2_mean = filtered_collection.mean().clip(buffered_city_geometry)
             pollutant_mean = NO2_mean.rename('NO2')
 
-            # Calculate percentiles for visualization
+            # Calculate initial min and max values for scaling
+            stats = pollutant_mean.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=500,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = stats.get('NO2_min', None)
+            max_value = stats.get('NO2_max', None)
+
+            if min_value is None or max_value is None:
+                return jsonify({'error': 'Could not calculate data range for NO2.'}), 500
+
+            # Adjust units and scaling
+            base_unit = 'mol/m²'
+            scaling_factor, adjusted_unit = adjust_units(min_value, max_value, base_unit)
+
+            # Apply scaling factor to pollutant_mean
+            pollutant_mean = pollutant_mean.multiply(scaling_factor)
+
+            # Recalculate min and max values after scaling
             percentiles = pollutant_mean.reduceRegion(
                 reducer=ee.Reducer.percentile([5, 95]),
                 geometry=buffered_city_geometry,
@@ -181,11 +280,13 @@ def get_pollutant():
             if min_value is None or max_value is None:
                 return jsonify({'error': 'Could not calculate visualization parameters for NO2.'}), 500
 
-            min_value = round(min_value, 8)
-            max_value = round(max_value, 8)
+            min_value = round(min_value, 2)
+            max_value = round(max_value, 2)
 
             if min_value == 0 and max_value == 0:
                 return jsonify({'error': 'NO2 data is too low or not available for visualization in this area/date range.'}), 404
+
+            unit = adjusted_unit
 
         elif pollutant == 'CO':
             # Fetch and process the CO data from Sentinel-5P
@@ -201,7 +302,7 @@ def get_pollutant():
 
             if filtered_collection.size().getInfo() == 0 or surface_pressure_collection.size().getInfo() == 0:
                 return jsonify({'error': 'No CO data available for the specified parameters.'}), 404
-            
+
             def mask_negative_values(image):
                 return image.updateMask(image.gte(0))
 
@@ -219,7 +320,28 @@ def get_pollutant():
             XCO_ppb = CO_mean.divide(TC_dry_air).multiply(1e9).rename('XCO_ppb')
             pollutant_mean = XCO_ppb
 
-            # Calculate percentiles for visualization
+            # Calculate initial min and max values for scaling
+            stats = pollutant_mean.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=1000,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = stats.get('XCO_ppb_min', None)
+            max_value = stats.get('XCO_ppb_max', None)
+
+            if min_value is None or max_value is None:
+                return jsonify({'error': 'Could not calculate data range for CO.'}), 500
+
+            # Adjust units and scaling
+            base_unit = 'ppb'
+            scaling_factor, adjusted_unit = adjust_units(min_value, max_value, base_unit)
+
+            # Apply scaling factor to pollutant_mean
+            pollutant_mean = pollutant_mean.multiply(scaling_factor)
+
+            # Recalculate min and max values after scaling
             percentiles = pollutant_mean.reduceRegion(
                 reducer=ee.Reducer.percentile([5, 95]),
                 geometry=buffered_city_geometry,
@@ -235,6 +357,7 @@ def get_pollutant():
 
             min_value = round(min_value, 2)
             max_value = round(max_value, 2)
+            unit = adjusted_unit
 
         elif pollutant == 'SO2':
             # Fetch and process the SO2 data from Sentinel-5P
@@ -245,7 +368,7 @@ def get_pollutant():
 
             if filtered_collection.size().getInfo() == 0:
                 return jsonify({'error': 'No SO2 data available for the specified parameters.'}), 404
-            
+
             def mask_negative_values(image):
                 return image.updateMask(image.gte(0))
 
@@ -254,7 +377,28 @@ def get_pollutant():
             SO2_mean = filtered_collection.mean().clip(buffered_city_geometry)
             pollutant_mean = SO2_mean.rename('SO2')
 
-            # Calculate percentiles for visualization
+            # Calculate initial min and max values for scaling
+            stats = pollutant_mean.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=1000,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = stats.get('SO2_min', None)
+            max_value = stats.get('SO2_max', None)
+
+            if min_value is None or max_value is None:
+                return jsonify({'error': 'Could not calculate data range for SO2.'}), 500
+
+            # Adjust units and scaling
+            base_unit = 'mol/m²'
+            scaling_factor, adjusted_unit = adjust_units(min_value, max_value, base_unit)
+
+            # Apply scaling factor to pollutant_mean
+            pollutant_mean = pollutant_mean.multiply(scaling_factor)
+
+            # Recalculate min and max values after scaling
             percentiles = pollutant_mean.reduceRegion(
                 reducer=ee.Reducer.percentile([5, 95]),
                 geometry=buffered_city_geometry,
@@ -268,11 +412,13 @@ def get_pollutant():
             if min_value is None or max_value is None:
                 return jsonify({'error': 'Could not calculate visualization parameters for SO2.'}), 500
 
-            min_value = round(min_value, 8)
-            max_value = round(max_value, 8)
+            min_value = round(min_value, 2)
+            max_value = round(max_value, 2)
 
             if min_value == 0 and max_value == 0:
                 return jsonify({'error': 'SO2 data is too low or not available for visualization in this area/date range.'}), 404
+
+            unit = adjusted_unit
 
         elif pollutant == 'O3':
             # Fetch and process the O3 data from Sentinel-5P
@@ -283,7 +429,7 @@ def get_pollutant():
 
             if filtered_collection.size().getInfo() == 0:
                 return jsonify({'error': 'No O3 data available for the specified parameters.'}), 404
-            
+
             def mask_negative_values(image):
                 return image.updateMask(image.gte(0))
 
@@ -292,7 +438,28 @@ def get_pollutant():
             O3_mean = filtered_collection.mean().clip(buffered_city_geometry)
             pollutant_mean = O3_mean.rename('O3')
 
-            # Calculate percentiles for visualization
+            # Calculate initial min and max values for scaling
+            stats = pollutant_mean.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=1000,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = stats.get('O3_min', None)
+            max_value = stats.get('O3_max', None)
+
+            if min_value is None or max_value is None:
+                return jsonify({'error': 'Could not calculate data range for O3.'}), 500
+
+            # Adjust units and scaling
+            base_unit = 'mol/m²'
+            scaling_factor, adjusted_unit = adjust_units(min_value, max_value, base_unit)
+
+            # Apply scaling factor to pollutant_mean
+            pollutant_mean = pollutant_mean.multiply(scaling_factor)
+
+            # Recalculate min and max values after scaling
             percentiles = pollutant_mean.reduceRegion(
                 reducer=ee.Reducer.percentile([5, 95]),
                 geometry=buffered_city_geometry,
@@ -306,11 +473,13 @@ def get_pollutant():
             if min_value is None or max_value is None:
                 return jsonify({'error': 'Could not calculate visualization parameters for O3.'}), 500
 
-            min_value = round(min_value, 8)
-            max_value = round(max_value, 8)
+            min_value = round(min_value, 2)
+            max_value = round(max_value, 2)
 
             if min_value == 0 and max_value == 0:
                 return jsonify({'error': 'O3 data is too low or not available for visualization in this area/date range.'}), 404
+
+            unit = adjusted_unit
 
         elif pollutant == 'HCHO':
             # Fetch and process the HCHO data from Sentinel-5P
@@ -321,7 +490,7 @@ def get_pollutant():
 
             if filtered_collection.size().getInfo() == 0:
                 return jsonify({'error': 'No HCHO data available for the specified parameters.'}), 404
-            
+
             def mask_negative_values(image):
                 return image.updateMask(image.gte(0))
 
@@ -330,7 +499,28 @@ def get_pollutant():
             HCHO_mean = filtered_collection.mean().clip(buffered_city_geometry)
             pollutant_mean = HCHO_mean.rename('HCHO')
 
-            # Calculate percentiles for visualization
+            # Calculate initial min and max values for scaling
+            stats = pollutant_mean.reduceRegion(
+                reducer=ee.Reducer.minMax(),
+                geometry=buffered_city_geometry,
+                scale=1000,
+                bestEffort=True
+            ).getInfo()
+
+            min_value = stats.get('HCHO_min', None)
+            max_value = stats.get('HCHO_max', None)
+
+            if min_value is None or max_value is None:
+                return jsonify({'error': 'Could not calculate data range for HCHO.'}), 500
+
+            # Adjust units and scaling
+            base_unit = 'mol/m²'
+            scaling_factor, adjusted_unit = adjust_units(min_value, max_value, base_unit)
+
+            # Apply scaling factor to pollutant_mean
+            pollutant_mean = pollutant_mean.multiply(scaling_factor)
+
+            # Recalculate min and max values after scaling
             percentiles = pollutant_mean.reduceRegion(
                 reducer=ee.Reducer.percentile([5, 95]),
                 geometry=buffered_city_geometry,
@@ -344,49 +534,13 @@ def get_pollutant():
             if min_value is None or max_value is None:
                 return jsonify({'error': 'Could not calculate visualization parameters for HCHO.'}), 500
 
-            min_value = round(min_value, 8)
-            max_value = round(max_value, 8)
+            min_value = round(min_value, 2)
+            max_value = round(max_value, 2)
 
             if min_value == 0 and max_value == 0:
                 return jsonify({'error': 'HCHO data is too low or not available for visualization in this area/date range.'}), 404
 
-        # elif pollutant == 'CH4':
-        #     # Fetch and process the CH4 data from Sentinel-5P
-        #     filtered_collection = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_CH4') \
-        #         .filterBounds(buffered_city_geometry) \
-        #         .filterDate(start_date, end_date) \
-        #         .select('CH4_column_volume_mixing_ratio_dry_air')
-
-        #     if filtered_collection.size().getInfo() == 0:
-        #         return jsonify({'error': 'No CH4 data available for the specified parameters.'}), 404
-            
-            # def mask_negative_values(image):
-            #     return image.updateMask(image.gte(0))
-
-            # filtered_collection = filtered_collection.map(mask_negative_values)
-
-        #     CH4_mean = filtered_collection.mean().clip(buffered_city_geometry)
-        #     pollutant_mean = CH4_mean.rename('CH4')
-
-        #     # Calculate percentiles for visualization
-        #     percentiles = pollutant_mean.reduceRegion(
-        #         reducer=ee.Reducer.percentile([5, 95]),
-        #         geometry=buffered_city_geometry,
-        #         scale=1000,
-        #         bestEffort=True
-        #     ).getInfo()
-
-        #     min_value = percentiles.get('CH4_p5', None)
-        #     max_value = percentiles.get('CH4_p95', None)
-
-        #     if min_value is None or max_value is None:
-        #         return jsonify({'error': 'Could not calculate visualization parameters for CH4.'}), 500
-
-        #     min_value = round(min_value, 2)
-        #     max_value = round(max_value, 2)
-
-        #     if min_value == 0 and max_value == 0:
-        #         return jsonify({'error': 'CH4 data is too low or not available for visualization in this area/date range.'}), 404
+            unit = adjusted_unit
 
         else:
             return jsonify({'error': f"Unsupported pollutant: {pollutant}"}), 400
@@ -418,7 +572,8 @@ def get_pollutant():
             'min': min_value_sci,
             'max': max_value_sci,
             'min_raw': min_value,
-            'max_raw': max_value
+            'max_raw': max_value,
+            'unit': unit  # Include the adjusted unit
         })
 
     except Exception as e:

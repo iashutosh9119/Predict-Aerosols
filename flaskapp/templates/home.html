@@ -352,22 +352,25 @@
             currentPollutantLayer = pollutantLayer;
 
             // Define Units for Pollutants
-            const pollutantUnits = {
-              "PM2.5": "µg/m³",
-              "PM10": "µg/m³",
-              "NO2": "mol/m²",
-              "SO2": "mol/m²",
-              "O3": "mol/m²",
-              "HCHO": "mol/m²",
-              "CH4": "ppb",
-              "CO": "ppb"
-            };
+            // Remove or comment out this section
+            // const pollutantUnits = {
+            //   "PM2.5": "µg/m³",
+            //   "PM10": "µg/m³",
+            //   "NO2": "μmol/m²",
+            //   "SO2": "mol/m²",
+            //   "O3": "mol/m²",
+            //   "HCHO": "mol/m²",
+            //   "CH4": "ppb",
+            //   "CO": "ppb"
+            // };
 
             // Get Unit for Selected Pollutant
-            const unit = pollutantUnits[pollutant] || "";
+            const unit = data.unit || "";
+            const minValue = data.min_raw;
+            const maxValue = data.max_raw;
 
             // Update Legend
-            updateLegend(data.min, data.max, unit);
+            updateLegend(minValue, maxValue, unit);
 
             // Initialize Windy API if Wind Flow is Selected
             if (showAirDirection) {
@@ -424,12 +427,14 @@
       // Function to Update Legend
       function updateLegend(minValue, maxValue, unit) {
         const legend = document.getElementById("legend");
+        const formattedMin = parseFloat(minValue).toFixed(2);
+        const formattedMax = parseFloat(maxValue).toFixed(2);
         legend.innerHTML = `
           <h4>Concentration (${unit})</h4>
           <div class="gradient"></div>
           <div class="labels">
-            <span>${minValue}</span>
-            <span>${maxValue}</span>
+            <span>${formattedMin}</span>
+            <span>${formattedMax}</span>
           </div>
         `;
       }
