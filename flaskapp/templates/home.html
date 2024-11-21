@@ -93,6 +93,24 @@
       margin-top: 5px;
       font-size: 14px;
     }
+    /* High-Medium-Low Legend Styling */
+.legend-hml {
+  display: flex;
+  flex-direction: column;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+}
+
   </style>
 </head>
 <body class="text-gray-600 body-font">
@@ -200,6 +218,11 @@
           <label for="show_air_direction" class="leading-7 text-xs text-gray-600">
             <input type="checkbox" id="show_air_direction" name="show_air_direction" class="mr-2">
             Show Live Wind Flow
+          </label>
+        </br>
+          <label for="show_high_medium_low" class="leading-7 text-xs text-gray-600">
+            <input type="checkbox" id="show_high_medium_low" name="show_high_medium_low" class="mr-2">
+            Show High Medium Low Conc. Only
           </label>
         </div>
 
@@ -364,6 +387,9 @@
         const endDate = document.getElementById("end_date").value;
         const pollutant = document.getElementById("pollutant").value;
         const showAirDirection = document.getElementById("show_air_direction").checked;
+        // Capture the state of the new checkbox
+        const showHighMediumLow = document.getElementById("show_high_medium_low").checked;
+
 
         // Remove Existing Buffer if Any
         if (currentBuffer) {
@@ -382,7 +408,7 @@
         leafletMap.fitBounds(currentBuffer.getBounds());
 
         // Fetch Pollutant Data from API
-        fetch(`/api/get-pollutant?lat=${lat}&lon=${lon}&buffer=${bufferRadius}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}`)
+        fetch(`/api/get-pollutant?lat=${lat}&lon=${lon}&buffer=${bufferRadius}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}&hml=${showHighMediumLow}`)
           .then((response) => response.json())
           .then((data) => {
             if (data.error) {
@@ -439,7 +465,9 @@
             const maxValue = data.max_raw;
 
             // Update Legend
-            updateLegend(minValue, maxValue, unit);
+            // Update Legend
+            updateLegend(minValue, maxValue, unit, data.legend_labels);
+
 
             // Initialize Windy API if Wind Flow is Selected
             if (showAirDirection) {
@@ -494,21 +522,44 @@
       });
 
       // Function to Update Legend
-      function updateLegend(minValue, maxValue, unit) {
+      function updateLegend(minValue, maxValue, unit, legendLabels) {
         const legend = document.getElementById("legend");
-        const formattedMin = parseFloat(minValue).toFixed(2);
-        const formattedMax = parseFloat(maxValue).toFixed(2);
         const pollutant = document.getElementById("pollutant").value;
-        legend.innerHTML = `
-          <h4>Concentration of ${pollutant} in (${unit})</h4>
-          <div class="gradient"></div>
-          <div class="labels">
-            <span>${formattedMin}</span>
-            <span>${formattedMax}</span>
-          </div>
-        `;
+      
+        if (legendLabels) {
+          // Show High-Medium-Low legend
+          legend.innerHTML = `
+            <h4>Concentration of ${pollutant}</h4>
+            <div class="legend-hml">
+              <div class="legend-item">
+                <span class="legend-color" style="background-color: blue;"></span>
+                <span class="legend-label">Low</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color" style="background-color: yellow;"></span>
+                <span class="legend-label">Medium</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color" style="background-color: red;"></span>
+                <span class="legend-label">High</span>
+              </div>
+            </div>
+          `;
+        } else {
+          // Existing gradient legend
+          const formattedMin = parseFloat(minValue).toFixed(2);
+          const formattedMax = parseFloat(maxValue).toFixed(2);
+          legend.innerHTML = `
+            <h4>Concentration of ${pollutant} in (${unit})</h4>
+            <div class="gradient"></div>
+            <div class="labels">
+              <span>${formattedMin}</span>
+              <span>${formattedMax}</span>
+            </div>
+          `;
+        }
       }
-
+      
       // Event Listener for City Selection Change
       document.getElementById("city").addEventListener("change", function () {
         if (this.value === "Manual") {

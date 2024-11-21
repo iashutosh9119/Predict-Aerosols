@@ -84,6 +84,8 @@ def get_pollutant():
         city_lat = float(request.args.get('lat'))
         city_lon = float(request.args.get('lon'))
         buffer = request.args.get('buffer', default=50000, type=int)
+        hml = request.args.get('hml', 'false').lower() == 'true'
+
 
         # Set default start and end dates (last 7 days)
         current_date = datetime.utcnow()
@@ -552,11 +554,26 @@ def get_pollutant():
 
         # Apply a buffer to ensure full utilization of the color palette
         buffer_range = abs(max_value - min_value) * 0.1
-        vis_params = {
-            'min': min_value - buffer_range,
-            'max': max_value + buffer_range,
-            'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
-        }
+        # Determine visualization parameters based on hml flag
+        if hml:
+            # Equal divisions for low, medium, high
+            vis_params = {
+                'min': min_value,
+                'max': max_value,
+                'palette': ['blue', 'yellow', 'red'],
+            }
+            # Labels for the legend
+            legend_labels = ['Low', 'Medium', 'High']
+        else:
+            # Existing visualization parameters
+            buffer_range = abs(max_value - min_value) * 0.1
+            vis_params = {
+                'min': min_value - buffer_range,
+                'max': max_value + buffer_range,
+                'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
+            }
+            legend_labels = None
+
 
         # Generate map tiles for visualization
         map_id = pollutant_mean.getMapId(vis_params)
@@ -566,15 +583,16 @@ def get_pollutant():
         min_value_sci = f"{min_value:.2e}"
         max_value_sci = f"{max_value:.2e}"
 
-        # Return the response as JSON
         return jsonify({
-            'tile_url': tile_url,
-            'min': min_value_sci,
-            'max': max_value_sci,
-            'min_raw': min_value,
-            'max_raw': max_value,
-            'unit': unit  # Include the adjusted unit
-        })
+                        'tile_url': tile_url,
+                        'min': min_value_sci,
+                        'max': max_value_sci,
+                        'min_raw': min_value,
+                        'max_raw': max_value,
+                        'unit': unit,
+                        'legend_labels': legend_labels
+                    })
+
 
     except Exception as e:
         # Handle any exceptions that occur during processing

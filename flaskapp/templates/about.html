@@ -54,10 +54,6 @@
             <p class="mt-4 text-base leading-relaxed xl:w-2/4 lg:w-3/4 mx-auto">
               This cloud-based platform leverages artificial intelligence and satellite data to monitor and predict air pollution levels using Google Earth Engine. The system helps researchers, policymakers, and environmentalists gain actionable insights to mitigate the adverse effects of air pollution.
             </p>
-            <p class="mt-4 text-base leading-relaxed xl:w-2/4 lg:w-3/4 mx-auto">
-              The project is continuously evolving, and community feedback is vital for improvement. Please report any issues or suggestions via email at 
-              <b>ashutosh.mishra.r5*at*dc.tohoku.ac.jp</b> or <b>mahesh_p@nrsc.gov.in</b>.
-            </p>
           </div>
 
           <!-- Contributors Section -->
@@ -69,32 +65,35 @@
             </h2>
             <ul class="list-disc list-inside">
               <li class="mb-4">
-                <strong>Mahesh Pathakoti</strong><br />
+                <strong>Dr. Mahesh Pathakoti</strong><br />
                 Scientist-SF<br />
                 Earth and Climate Sciences Area (ECSA), NRSC-ISRO<br />
-                <a href="mailto:mahesh_p@nrsc.gov.in" class="text-indigo-500">mahesh_p@nrsc.gov.in</a>
               </li>
               <li class="mb-4">
-                <strong>Ashutosh Mishra</strong><br />
+                <strong>Ashutosh Mishra [ISU SSP24]</strong><br />
                 Doctoral Researcher (MEXT Scholar)<br />
                 Space Robotics Laboratory, Tohoku University, Japan<br />
-                <a href="mailto:ashutosh.mishra.r5@dc.tohoku.ac.jp" class="text-indigo-500">ashutosh.mishra.r5@dc.tohoku.ac.jp</a>
               </li>
               <li class="mb-4">
                 <strong>T. Santhoshi</strong><br />
                 Scientist-SD<br />
                 Bhuvan Group, NRSC-ISRO<br />
-                <a href="mailto:santhoshi_t@nrsc.gov.in" class="text-indigo-500">santhoshi_t@nrsc.gov.in</a>
               </li>
             </ul>
           </div>
           <!-- Mentor Section -->
           <div class="p-4 w-full">
             <h2 class="text-xl font-medium title-font text-gray-900 mb-4">Mentor</h2>
+          <p class="leading-relaxed">
+            <strong>Dr. Prakash Chauhan</strong><br />
+            Director, National Remote Sensing Centre (NRSC), Indian Space Research Organisation (ISRO)
+          </p>
+        </br>
             <p class="leading-relaxed">
-              <strong>Dr. Prakash Chauhan</strong><br />
-              Director, National Remote Sensing Centre (NRSC), Indian Space Research Organisation (ISRO)
+              <strong>Shri G. Srinivasa Rao</strong><br />
+              Dy. Director, ECSA, NRSC-ISRO
             </p>
+          
           </div>
 
           <!-- How This Application Helps Section -->
@@ -115,7 +114,7 @@
                 Supports decision-making for urban planning, environmental policy, and public health initiatives.
               </li>
               <li class="mb-2">
-                Facilitates educational and research efforts by providing accessible, processed data.
+                Facilitates educational and research efforts by providing accessible, processed data through Visualization.
               </li>
               <li class="mb-2">
                 Enhances early-warning systems for pollution-related health risks. [In Development]
@@ -123,9 +122,54 @@
             </ul>
           </div>
 
-         
-
-
+          <!-- Contact Us Section -->
+          <div class="p-4 w-full">
+            <h2
+              class="text-xl font-medium title-font text-gray-900 mb-4"
+            >
+              Contact Us
+            </h2>
+            <p class="leading-relaxed mb-4">
+              Have questions or suggestions or want to report bugs and issues? Use the form below to reach out to us.
+            </p>
+            <form action="/submit" method="post" class="bg-gray-100 rounded-lg p-8">
+              <div class="mb-4">
+                <label for="name" class="leading-7 text-sm text-gray-600">Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
+                  required
+                />
+              </div>
+              <div class="mb-4">
+                <label for="email" class="leading-7 text-sm text-gray-600">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
+                  required
+                />
+              </div>
+              <div class="mb-4">
+                <label for="message" class="leading-7 text-sm text-gray-600">Message</label>
+                <textarea
+                  id="message"
+                  name="message"
+                  class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 h-32 text-base outline-none text-gray-700 py-1 px-3 resize-none leading-6 transition-colors duration-200 ease-in-out"
+                  required
+                ></textarea>
+              </div>
+              <button
+                type="submit"
+                class="text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg"
+              >
+                Submit
+              </button>
+            </form>
+          </div>
           <!-- Credits & References Section -->
           <div class="p-4 w-full">
             <h2
@@ -163,11 +207,12 @@
                 >
               </li>
               <li class="mb-2">
-                "Air Pollution Data Sources and Machine Learning Techniques," a reference for algorithmic integration.
+                "Air Pollution Open Data Sources and Machine Learning Techniques," a reference for algorithmic integration.
               </li>
-              <li class="mb-2">Updating Soon</li>
             </ol>
           </div>
+
+
         </div>
       </section>
     </main>
