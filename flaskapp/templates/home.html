@@ -406,15 +406,8 @@
 
         // Adjust Map View to Fit Buffer Bounds
         leafletMap.fitBounds(currentBuffer.getBounds());
-
-// Get the current center of the map
-const currentCenter = leafletMap.getCenter();
-
-// Adjust the center to shift it slightly to the left
-const adjustedCenter = [currentCenter.lat, currentCenter.lng + 0.1]; // Adjust the value of -0.5 as needed
-
-// Set the adjusted center back to the map
-leafletMap.setView(adjustedCenter, leafletMap.getZoom());
+        const adjustedCenter = [lat, lon + 0.1]; 
+        leafletMap.setView(adjustedCenter, leafletMap.getZoom());
 
         // Fetch Pollutant Data from API
         fetch(`/api/get-pollutant?lat=${lat}&lon=${lon}&buffer=${bufferRadius}&start_date=${startDate}&end_date=${endDate}&pollutant=${pollutant}&hml=${showHighMediumLow}`)
