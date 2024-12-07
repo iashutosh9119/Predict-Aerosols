@@ -93,24 +93,24 @@
       margin-top: 5px;
       font-size: 14px;
     }
+
     /* High-Medium-Low Legend Styling */
-.legend-hml {
-  display: flex;
-  flex-direction: column;
-}
+    .legend-hml {
+      display: flex;
+      flex-direction: column;
+    }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-}
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
 
-.legend-color {
-  width: 20px;
-  height: 20px;
-  margin-right: 5px;
-}
-
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body class="text-gray-600 body-font">
@@ -262,6 +262,20 @@
       let currentBuffer = null;
       let windyDiv = document.getElementById("windy");
       let currentPollutantLayer = null; // Keep track of the current pollutant layer
+
+      // Load India Boundary GeoJSON
+      fetch("{{ url_for('static', filename='India_State_Boundary.geojson') }}")
+        .then((response) => response.json())
+        .then((geojson) => {
+          L.geoJSON(geojson, {
+            style: {
+              color: "grey",
+              weight: 1,
+              opacity: 0.8,
+            },
+          }).addTo(leafletMap);
+        })
+        .catch((error) => console.error("Error loading India GeoJSON:", error));
 
       // Set default dates for start_date and end_date inputs
       const endDateInput = document.getElementById("end_date");
@@ -448,28 +462,13 @@
             pollutantLayer.addTo(leafletMap);
             currentPollutantLayer = pollutantLayer;
 
-            // Define Units for Pollutants
-            // Remove or comment out this section
-            // const pollutantUnits = {
-            //   "PM2.5": "µg/m³",
-            //   "PM10": "µg/m³",
-            //   "NO2": "μmol/m²",
-            //   "SO2": "mol/m²",
-            //   "O3": "mol/m²",
-            //   "HCHO": "mol/m²",
-            //   "CH4": "ppb",
-            //   "CO": "ppb"
-            // };
-
             // Get Unit for Selected Pollutant
             const unit = data.unit || "";
             const minValue = data.min_raw;
             const maxValue = data.max_raw;
 
             // Update Legend
-            // Update Legend
             updateLegend(minValue, maxValue, unit, data.legend_labels);
-
 
             // Initialize Windy API if Wind Flow is Selected
             if (showAirDirection) {
@@ -561,7 +560,7 @@
           `;
         }
       }
-      
+
       // Event Listener for City Selection Change
       document.getElementById("city").addEventListener("change", function () {
         if (this.value === "Manual") {
